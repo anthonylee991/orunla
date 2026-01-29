@@ -18,14 +18,23 @@ jobs:
           - platform: macos-latest
             rust_target: aarch64-apple-darwin
             ort_arch: osx-arm64
+            ort_ext: tgz
+            ort_lib: libonnxruntime.dylib
           - platform: macos-15-intel
             rust_target: x86_64-apple-darwin
             ort_arch: osx-x86_64
+            ort_ext: tgz
+            ort_lib: libonnxruntime.dylib
           - platform: windows-latest
             rust_target: x86_64-pc-windows-msvc
             ort_arch: win-x64
+            ort_ext: zip
+            ort_lib: onnxruntime.dll
 
     runs-on: ${{ matrix.platform }}
+
+    env:
+      ORT_VERSION: "1.20.0"
 
     steps:
       - name: Checkout
@@ -33,7 +42,7 @@ jobs:
 
       # Windows: fix broken MSVC link.exe path (actions/runner-images#12432)
       - name: Configure lld-link for Windows
-        if: matrix.platform == 'windows-latest'
+        if: runner.os == 'Windows'
         shell: bash
         run: |
           mkdir -p src-tauri/.cargo
@@ -60,25 +69,39 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # macOS: download ONNX Runtime dylib and patch tauri config
-      - name: Download ONNX Runtime for macOS
+      # Download ONNX Runtime for all platforms
+      - name: Download ONNX Runtime (macOS)
         if: runner.os == 'macOS'
         run: |
-          ORT_VERSION="1.20.0"
-          ORT_ARCHIVE="onnxruntime-${ORT_ARCH}-${ORT_VERSION}.tgz"
+          ORT_ARCHIVE="onnxruntime-${{ matrix.ort_arch }}-${ORT_VERSION}.tgz"
           ORT_URL="https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/${ORT_ARCHIVE}"
 
           echo "Downloading ONNX Runtime from ${ORT_URL}..."
           curl -sL "${ORT_URL}" -o "${ORT_ARCHIVE}"
           tar xzf "${ORT_ARCHIVE}"
 
-          # Copy dylib to Tauri resources
-          cp "onnxruntime-${ORT_ARCH}-${ORT_VERSION}/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+          mkdir -p src-tauri/resources
+          cp "onnxruntime-${{ matrix.ort_arch }}-${ORT_VERSION}/lib/libonnxruntime.${ORT_VERSION}.dylib" \
              src-tauri/resources/libonnxruntime.dylib
           ls -la src-tauri/resources/
-        env:
-          ORT_ARCH: ${{ matrix.ort_arch }}
 
+      - name: Download ONNX Runtime (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $ORT_ARCHIVE = "onnxruntime-${{ matrix.ort_arch }}-${{ env.ORT_VERSION }}.zip"
+          $ORT_URL = "https://github.com/microsoft/onnxruntime/releases/download/v${{ env.ORT_VERSION }}/$ORT_ARCHIVE"
+
+          Write-Host "Downloading ONNX Runtime from $ORT_URL..."
+          Invoke-WebRequest -Uri $ORT_URL -OutFile $ORT_ARCHIVE
+          Expand-Archive -Path $ORT_ARCHIVE -DestinationPath "ort-extract"
+
+          New-Item -ItemType Directory -Force -Path "src-tauri\resources" | Out-Null
+          Copy-Item "ort-extract\onnxruntime-${{ matrix.ort_arch }}-${{ env.ORT_VERSION }}\lib\onnxruntime.dll" `
+                    "src-tauri\resources\onnxruntime.dll"
+          Get-ChildItem "src-tauri\resources\"
+
+      # macOS: patch tauri.conf.json to reference dylib instead of dll
       - name: Patch tauri.conf.json for macOS
         if: runner.os == 'macOS'
         run: |
@@ -90,7 +113,6 @@ jobs:
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          ORT_DYLIB_PATH: ${{ runner.os == 'macOS' && format('{0}/src-tauri/resources/libonnxruntime.dylib', github.workspace) || '' }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Orunla ${{ github.ref_name }}"
