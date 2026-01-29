@@ -18,18 +18,15 @@ jobs:
           - platform: macos-latest
             rust_target: aarch64-apple-darwin
             ort_arch: osx-arm64
-            ort_ext: tgz
-            ort_lib: libonnxruntime.dylib
+            dist_name: orunla-mac-aarch64
           - platform: macos-15-intel
             rust_target: x86_64-apple-darwin
             ort_arch: osx-x86_64
-            ort_ext: tgz
-            ort_lib: libonnxruntime.dylib
+            dist_name: orunla-mac-x86_64
           - platform: windows-latest
             rust_target: x86_64-pc-windows-msvc
             ort_arch: win-x64
-            ort_ext: zip
-            ort_lib: onnxruntime.dll
+            dist_name: orunla-windows
 
     runs-on: ${{ matrix.platform }}
 
@@ -69,7 +66,8 @@ jobs:
       - name: Install npm dependencies
         run: npm ci
 
-      # Download ONNX Runtime for all platforms
+      # ── Download ONNX Runtime ──────────────────────────────────────────
+
       - name: Download ONNX Runtime (macOS)
         if: runner.os == 'macOS'
         run: |
@@ -106,8 +104,8 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           sed -i '' 's|resources/onnxruntime.dll|resources/libonnxruntime.dylib|' src-tauri/tauri.conf.json
-          echo "Patched tauri.conf.json:"
-          cat src-tauri/tauri.conf.json
+
+      # ── Build Tauri desktop app ────────────────────────────────────────
 
       - name: Build Tauri app
         uses: tauri-apps/tauri-action@v0
@@ -119,11 +117,103 @@ jobs:
           releaseBody: |
             Orunla Memory System release.
 
-            **macOS Apple Silicon (M1-M4):** Download the `aarch64` DMG.
-            **macOS Intel:** Download the `x86_64` DMG.
-            **Windows:** Download the `.msi` installer.
+            **macOS Apple Silicon (M1-M4):** Download `orunla-mac-aarch64.zip`
+            **macOS Intel:** Download `orunla-mac-x86_64.zip`
+            **Windows:** Download `orunla-windows.zip`
+
+            Each zip contains the desktop app, CLI, MCP server, ONNX runtime, and documentation.
 
             > macOS unsigned build: Right-click the app → Open to bypass Gatekeeper on first launch.
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.rust_target }}
+
+      # ── Build CLI and MCP binaries ─────────────────────────────────────
+
+      - name: Build CLI and MCP binaries
+        run: |
+          cargo build --release --target ${{ matrix.rust_target }} --bin orunla_cli
+          cargo build --release --target ${{ matrix.rust_target }} --bin orunla_mcp
+
+      # ── Package full distribution zip ──────────────────────────────────
+
+      - name: Package distribution (macOS)
+        if: runner.os == 'macOS'
+        run: |
+          DIST="${{ matrix.dist_name }}"
+          mkdir -p "${DIST}/documentation"
+
+          # Binaries
+          cp "target/${{ matrix.rust_target }}/release/orunla_cli" "${DIST}/"
+          cp "target/${{ matrix.rust_target }}/release/orunla_mcp" "${DIST}/"
+
+          # ONNX Runtime
+          cp "src-tauri/resources/libonnxruntime.dylib" "${DIST}/"
+
+          # Browser UI
+          cp launch_orunla.sh "${DIST}/"
+          chmod +x "${DIST}/launch_orunla.sh"
+          mkdir -p "${DIST}/ui"
+          cp ui/index.html "${DIST}/ui/"
+          cp ui/main.js "${DIST}/ui/"
+
+          # Documentation
+          cp README-MAC.md "${DIST}/README.md"
+          cp docs/CLI.md "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/MCP.md "${DIST}/documentation/" 2>/dev/null || true
+          cp API_REFERENCE.md "${DIST}/documentation/" 2>/dev/null || true
+          cp OVERVIEW.md "${DIST}/documentation/" 2>/dev/null || true
+          cp LICENSE "${DIST}/documentation/" 2>/dev/null || true
+          cp THIRD_PARTY_NOTICES.md "${DIST}/documentation/" 2>/dev/null || true
+
+          # Zip
+          zip -r "${DIST}.zip" "${DIST}/"
+          echo "Packaged ${DIST}.zip:"
+          ls -la "${DIST}.zip"
+
+      - name: Package distribution (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $DIST = "${{ matrix.dist_name }}"
+          New-Item -ItemType Directory -Force -Path "$DIST\documentation" | Out-Null
+
+          # Binaries
+          Copy-Item "target\${{ matrix.rust_target }}\release\orunla_cli.exe" "$DIST\"
+          Copy-Item "target\${{ matrix.rust_target }}\release\orunla_mcp.exe" "$DIST\"
+
+          # Desktop app (built by tauri-action)
+          $tauriExe = Get-ChildItem -Path "src-tauri\target\${{ matrix.rust_target }}\release" -Filter "*.exe" |
+                      Where-Object { $_.Name -eq "app.exe" -or $_.Name -eq "Orunla.exe" } |
+                      Select-Object -First 1
+          if ($tauriExe) {
+            Copy-Item $tauriExe.FullName "$DIST\Orunla.exe"
+          }
+
+          # ONNX Runtime
+          Copy-Item "src-tauri\resources\onnxruntime.dll" "$DIST\"
+
+          # Documentation
+          Copy-Item "README-WINDOWS.md" "$DIST\README.md"
+          $docs = @("docs\CLI.md", "docs\MCP.md", "API_REFERENCE.md", "OVERVIEW.md", "LICENSE", "THIRD_PARTY_NOTICES.md")
+          foreach ($doc in $docs) {
+            if (Test-Path $doc) { Copy-Item $doc "$DIST\documentation\" }
+          }
+
+          # Zip
+          Compress-Archive -Path "$DIST\*" -DestinationPath "$DIST.zip" -Force
+          Write-Host "Packaged ${DIST}.zip:"
+          Get-ChildItem "$DIST.zip"
+
+      # Upload dist zip to the release
+      - name: Upload distribution zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          TAG="${{ github.ref_name }}"
+          # workflow_dispatch may not have a tag, use a default
+          if [ -z "$TAG" ] || [ "$TAG" = "" ]; then
+            TAG="v0.1.1"
+          fi
+          gh release upload "$TAG" "${{ matrix.dist_name }}.zip" --clobber
