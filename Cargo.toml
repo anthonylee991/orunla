@@ -1,0 +1,36 @@
+[package]
+name = "orunla"
+version = "0.1.1"
+edition = "2021"
+
+[dependencies]
+rusqlite = { version = "0.31.0", features = ["bundled"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1.8", features = ["v4", "serde"] }
+anyhow = "1.0"
+dirs = "5.0"
+axum = { version = "0.7", features = ["multipart"] }
+tokio = { version = "1.0", features = ["full"] }
+tower-http = { version = "0.5", features = ["cors", "trace"] }
+clap = { version = "4.5", features = ["derive", "env"] }
+ort = { version = "2.0.0-rc.9", features = ["load-dynamic"] }
+gline-rs = { version = "1.0.1", features = ["load-dynamic"] }
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+regex = "1.10"
+futures = "0.3"
+tokio-stream = "0.1"
+async-channel = "2.3"
+
+[lib]
+name = "orunla"
+path = "src/lib.rs"
+
+[[bin]]
+name = "orunla_cli"
+path = "src/main.rs"
+
+[[bin]]
+name = "orunla_mcp"
+path = "src/mcp_server.rs"

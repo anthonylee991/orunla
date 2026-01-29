@@ -1,0 +1,107 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            rust_target: aarch64-apple-darwin
+            ort_arch: osx-arm64
+          - platform: macos-15-intel
+            rust_target: x86_64-apple-darwin
+            ort_arch: osx-x86_64
+          - platform: windows-latest
+            rust_target: x86_64-pc-windows-msvc
+            ort_arch: win-x64
+
+    runs-on: ${{ matrix.platform }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # Windows: fix broken MSVC link.exe path (actions/runner-images#12432)
+      - name: Configure lld-link for Windows
+        if: matrix.platform == 'windows-latest'
+        shell: bash
+        run: |
+          mkdir -p src-tauri/.cargo
+          cat > src-tauri/.cargo/config.toml << 'EOF'
+          [target.x86_64-pc-windows-msvc]
+          linker = "lld-link"
+          EOF
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust_target }}
+
+      - name: Rust cache
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      # macOS: download ONNX Runtime dylib and patch tauri config
+      - name: Download ONNX Runtime for macOS
+        if: runner.os == 'macOS'
+        run: |
+          ORT_VERSION="1.20.0"
+          ORT_ARCHIVE="onnxruntime-${ORT_ARCH}-${ORT_VERSION}.tgz"
+          ORT_URL="https://github.com/microsoft/onnxruntime/releases/download/v${ORT_VERSION}/${ORT_ARCHIVE}"
+
+          echo "Downloading ONNX Runtime from ${ORT_URL}..."
+          curl -sL "${ORT_URL}" -o "${ORT_ARCHIVE}"
+          tar xzf "${ORT_ARCHIVE}"
+
+          # Copy dylib to Tauri resources
+          cp "onnxruntime-${ORT_ARCH}-${ORT_VERSION}/lib/libonnxruntime.${ORT_VERSION}.dylib" \
+             src-tauri/resources/libonnxruntime.dylib
+          ls -la src-tauri/resources/
+        env:
+          ORT_ARCH: ${{ matrix.ort_arch }}
+
+      - name: Patch tauri.conf.json for macOS
+        if: runner.os == 'macOS'
+        run: |
+          sed -i '' 's|resources/onnxruntime.dll|resources/libonnxruntime.dylib|' src-tauri/tauri.conf.json
+          echo "Patched tauri.conf.json:"
+          cat src-tauri/tauri.conf.json
+
+      - name: Build Tauri app
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ORT_DYLIB_PATH: ${{ runner.os == 'macOS' && format('{0}/src-tauri/resources/libonnxruntime.dylib', github.workspace) || '' }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "Orunla ${{ github.ref_name }}"
+          releaseBody: |
+            Orunla Memory System release.
+
+            **macOS Apple Silicon (M1-M4):** Download the `aarch64` DMG.
+            **macOS Intel:** Download the `x86_64` DMG.
+            **Windows:** Download the `.msi` installer.
+
+            > macOS unsigned build: Right-click the app → Open to bypass Gatekeeper on first launch.
+          releaseDraft: true
+          prerelease: false
+          args: --target ${{ matrix.rust_target }}

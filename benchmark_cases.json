@@ -1,0 +1,139 @@
+[
+  {
+    "id": "pref-dark-mode",
+    "text": "I prefer dark mode",
+    "expected": [
+      { "subject": "I", "predicate": "prefer", "object": "dark mode" }
+    ]
+  },
+  {
+    "id": "pref-vim",
+    "text": "I like using Vim for editing",
+    "expected": [
+      { "subject": "I", "predicate": "like using", "object": "Vim" }
+    ]
+  },
+  {
+    "id": "pref-language",
+    "text": "My favorite language is Rust",
+    "expected": [
+      { "subject": "My favorite language", "predicate": "is", "object": "Rust" }
+    ]
+  },
+  {
+    "id": "pref-tabs",
+    "text": "I always use tabs instead of spaces",
+    "expected": [
+      { "subject": "I", "predicate": "use", "object": "tabs" }
+    ]
+  },
+  {
+    "id": "pref-testing",
+    "text": "I prefer writing tests before implementation",
+    "expected": [
+      { "subject": "I", "predicate": "prefer", "object": "writing tests" }
+    ]
+  },
+  {
+    "id": "fact-work",
+    "text": "I work at Google",
+    "expected": [
+      { "subject": "I", "predicate": "work at", "object": "Google" }
+    ]
+  },
+  {
+    "id": "fact-name",
+    "text": "My name is Alice",
+    "expected": [
+      { "subject": "My name", "predicate": "is", "object": "Alice" }
+    ]
+  },
+  {
+    "id": "fact-location",
+    "text": "I live in Seattle",
+    "expected": [
+      { "subject": "I", "predicate": "live in", "object": "Seattle" }
+    ]
+  },
+  {
+    "id": "fact-role",
+    "text": "I am a software engineer",
+    "expected": [
+      { "subject": "I", "predicate": "am", "object": "software engineer" }
+    ]
+  },
+  {
+    "id": "const-api-key",
+    "text": "My API key is sk-1234abcd",
+    "expected": [
+      { "subject": "My API key", "predicate": "is", "object": "sk-1234abcd" }
+    ]
+  },
+  {
+    "id": "const-db-url",
+    "text": "The database URL is postgres://localhost:5432/mydb",
+    "expected": [
+      { "subject": "database URL", "predicate": "is", "object": "postgres://localhost:5432/mydb" }
+    ]
+  },
+  {
+    "id": "const-port",
+    "text": "Use port 8080 for the server",
+    "expected": [
+      { "subject": "server", "predicate": "use port", "object": "8080" }
+    ]
+  },
+  {
+    "id": "const-project-path",
+    "text": "My project is located at ~/projects/myapp",
+    "expected": [
+      { "subject": "My project", "predicate": "is located at", "object": "~/projects/myapp" }
+    ]
+  },
+  {
+    "id": "rel-manager",
+    "text": "Alice is my manager",
+    "expected": [
+      { "subject": "Alice", "predicate": "is", "object": "my manager" }
+    ]
+  },
+  {
+    "id": "rel-team",
+    "text": "John works with Sarah on the backend team",
+    "expected": [
+      { "subject": "John", "predicate": "works with", "object": "Sarah" }
+    ]
+  },
+  {
+    "id": "rel-company",
+    "text": "Bob joined Microsoft last year",
+    "expected": [
+      { "subject": "Bob", "predicate": "joined", "object": "Microsoft" }
+    ]
+  },
+  {
+    "id": "complex-preference",
+    "text": "I told you yesterday that I prefer TypeScript over JavaScript",
+    "expected": [
+      { "subject": "I", "predicate": "prefer", "object": "TypeScript" }
+    ]
+  },
+  {
+    "id": "complex-project",
+    "text": "Remember, my project uses React and lives in ~/projects/app",
+    "expected": [
+      { "subject": "my project", "predicate": "uses", "object": "React" },
+      { "subject": "my project", "predicate": "lives in", "object": "~/projects/app" }
+    ]
+  },
+  {
+    "id": "edge-no-entity",
+    "text": "Hello there",
+    "expected": []
+  },
+  {
+    "id": "edge-ambiguous",
+    "text": "Maybe tomorrow",
+    "expected": []
+  }
+]
