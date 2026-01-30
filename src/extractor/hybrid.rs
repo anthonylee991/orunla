@@ -1,4 +1,4 @@
-use crate::extractor::{gliner::GlinerExtractor, patterns::PatternMatcher, Triplet};
+use crate::extractor::{gliner::GlinerExtractor, normalize_predicate, patterns::PatternMatcher, Triplet};
 use anyhow::Result;
 
 /// Hybrid extractor that combines GliNER neural extraction with pattern-based rules.
@@ -39,6 +39,11 @@ impl HybridExtractor {
             if !dominated {
                 final_triplets.push(gt);
             }
+        }
+
+        // Normalize predicates for graph consistency
+        for triplet in &mut final_triplets {
+            triplet.predicate = normalize_predicate(&triplet.predicate);
         }
 
         // Sort by position in text

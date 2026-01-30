@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ORUNLA – Agent Memory</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;600;700&display=swap"
+        rel="stylesheet">
+    <style>
+        :root {
+            --bg-dark: #0a0a0f;
+            --bg-grid: #12121a;
+            --cyber-cyan: #00ffff;
+            --cyber-magenta: #ff00ff;
+            --cyber-yellow: #ffff00;
+            --neon-green: #39ff14;
+            --neon-pink: #ff10f0;
+            --neon-blue: #1e90ff;
+            --text-primary: #e0e0ff;
+            --text-muted: #8a8aaa;
+            --pixel-border: #00ffaa;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        @keyframes glitch {
+            0%, 100% { text-shadow: 2px 0 var(--cyber-cyan), -2px 0 var(--cyber-magenta); }
+            50% { text-shadow: -2px 0 var(--cyber-cyan), 2px 0 var(--cyber-magenta); }
+        }
+
+        @keyframes scanline {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100vh); }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            font-family: 'Rajdhani', sans-serif;
+            margin: 0;
+            padding: 2.5rem;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+            image-rendering: pixelated;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background:
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0, 255, 255, 0.03) 2px, rgba(0, 255, 255, 0.03) 4px),
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255, 0, 255, 0.03) 2px, rgba(255, 0, 255, 0.03) 4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyber-cyan), transparent);
+            animation: scanline 8s linear infinite;
+            pointer-events: none;
+            z-index: 1000;
+            opacity: 0.3;
+        }
+
+        .header {
+            max-width: 1000px;
+            width: 100%;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 3rem;
+            position: relative;
+            z-index: 2;
+            animation: fadeIn 0.6s ease-out;
+        }
+
+        .logo {
+            font-size: 3rem;
+            font-weight: 700;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--cyber-cyan);
+            letter-spacing: 0.3em;
+            position: relative;
+            text-shadow:
+                0 0 10px var(--cyber-cyan),
+                0 0 20px var(--cyber-cyan),
+                0 0 30px var(--cyber-cyan),
+                2px 2px 0 var(--neon-pink);
+            animation: glitch 3s infinite;
+        }
+
+        .stats-bar {
+            display: flex;
+            gap: 2rem;
+            align-items: center;
+        }
+
+        .stat-item {
+            background: rgba(0, 255, 255, 0.05);
+            padding: 0.75rem 1.5rem;
+            border: 2px solid var(--cyber-cyan);
+            font-size: 0.9rem;
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 0.1em;
+            box-shadow:
+                inset 0 0 10px rgba(0, 255, 255, 0.2),
+                0 0 10px rgba(0, 255, 255, 0.3);
+            text-transform: uppercase;
+        }
+
+        .stat-value {
+            color: var(--neon-green);
+            font-weight: 700;
+            margin-left: 0.5rem;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+
+        .main-grid {
+            max-width: 1000px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 2rem;
+            position: relative;
+            z-index: 2;
+        }
+
+        .servers-section {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .server-card {
+            background: rgba(18, 18, 26, 0.8);
+            border: 2px solid var(--neon-pink);
+            padding: 1.75rem;
+            position: relative;
+            overflow: hidden;
+            box-shadow:
+                inset 0 0 20px rgba(255, 0, 255, 0.1),
+                0 0 20px rgba(255, 0, 255, 0.2);
+        }
+
+        .server-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: linear-gradient(90deg, var(--cyber-cyan), var(--neon-pink), var(--cyber-yellow));
+        }
+
+        .server-card h3 {
+            margin: 0 0 1rem 0;
+            font-size: 1.2rem;
+            color: var(--cyber-magenta);
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 700;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--cyber-magenta);
+        }
+
+        .server-status {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            font-size: 0.875rem;
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--text-muted);
+        }
+
+        .server-status code {
+            background: rgba(0, 0, 0, 0.6);
+            padding: 0.75rem;
+            border: 1px solid var(--neon-green);
+            border-left: 3px solid var(--neon-green);
+            font-size: 0.75rem;
+            display: block;
+            color: var(--neon-green);
+            box-shadow: inset 0 0 10px rgba(57, 255, 20, 0.1);
+        }
+
+        .server-port {
+            font-family: 'Share Tech Mono', monospace;
+            color: var(--cyber-yellow);
+            font-size: 0.85rem;
+            margin-bottom: 0.75rem;
+            font-weight: 600;
+            text-shadow: 0 0 5px var(--cyber-yellow);
+        }
+
+        .server-note {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            border-top: 1px solid rgba(0, 255, 255, 0.2);
+            padding-top: 0.75rem;
+            margin-top: 0.75rem;
+            line-height: 1.5;
+        }
+
+        .card {
+            background: rgba(18, 18, 26, 0.7);
+            padding: 2.5rem;
+            border: 2px solid var(--pixel-border);
+            box-shadow:
+                inset 0 0 30px rgba(0, 255, 170, 0.1),
+                0 0 30px rgba(0, 255, 170, 0.2);
+            margin-bottom: 1.5rem;
+            position: relative;
+            animation: fadeIn 0.6s ease-out backwards;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: -1px;
+            left: 2rem;
+            right: 2rem;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--cyber-cyan), var(--cyber-magenta), transparent);
+        }
+
+        h2 {
+            margin: 0 0 2rem 0;
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--cyber-cyan);
+            font-family: 'Share Tech Mono', monospace;
+            letter-spacing: 0.2em;
+            position: relative;
+            padding-bottom: 0.75rem;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--cyber-cyan);
+        }
+
+        h2::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 80px;
+            height: 3px;
+            background: linear-gradient(90deg, var(--neon-pink), var(--cyber-yellow));
+            box-shadow: 0 0 10px var(--neon-pink);
+        }
+
+        .ingest-grid {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .ingest-actions {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            margin-top: 1.5rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid rgba(212, 165, 116, 0.2);
+        }
+
+        .file-btn {
+            background: transparent;
+            border: 2px dashed var(--cyber-magenta);
+            color: var(--cyber-magenta);
+            padding: 0.875rem 1.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .file-btn:hover {
+            background: rgba(255, 0, 255, 0.1);
+            border-color: var(--neon-pink);
+            box-shadow: 0 0 15px rgba(255, 0, 255, 0.4);
+        }
+
+        .file-name {
+            font-size: 0.875rem;
+            color: var(--neon-green);
+            font-family: 'Share Tech Mono', monospace;
+        }
+
+        .input-group {
+            display: flex;
+            gap: 1rem;
+            align-items: stretch;
+        }
+
+        input {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 2px solid var(--cyber-cyan);
+            padding: 1rem 1.25rem;
+            color: var(--text-primary);
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+        }
+
+        input::placeholder {
+            color: var(--text-muted);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--neon-pink);
+            box-shadow:
+                inset 0 0 10px rgba(255, 0, 255, 0.2),
+                0 0 20px rgba(255, 0, 255, 0.4);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        button {
+            background: linear-gradient(135deg, rgba(0, 255, 255, 0.2), rgba(255, 0, 255, 0.2));
+            color: var(--text-primary);
+            border: 2px solid var(--cyber-cyan);
+            padding: 1rem 2.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1rem;
+            letter-spacing: 0.15em;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            text-transform: uppercase;
+            text-shadow: 0 0 10px var(--cyber-cyan);
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(0, 255, 255, 0.3), transparent);
+            transition: left 0.5s ease;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 30px rgba(0, 255, 255, 0.6);
+            border-color: var(--neon-pink);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .memory-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+            margin-top: 1.5rem;
+        }
+
+        .memory-item {
+            background: rgba(0, 0, 0, 0.5);
+            border: 2px solid var(--neon-blue);
+            border-left: 4px solid var(--cyber-cyan);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            transition: all 0.3s ease;
+            position: relative;
+            box-shadow: inset 0 0 20px rgba(30, 144, 255, 0.1);
+        }
+
+        .memory-item::before {
+            content: '▸';
+            position: absolute;
+            left: -1.5rem;
+            top: 1.5rem;
+            color: var(--cyber-cyan);
+            font-size: 1.2rem;
+            opacity: 0;
+            transition: all 0.3s ease;
+        }
+
+        .memory-item:hover {
+            border-left-color: var(--neon-pink);
+            background: rgba(0, 0, 0, 0.7);
+            transform: translateX(0.5rem);
+            box-shadow:
+                inset 0 0 30px rgba(255, 0, 255, 0.2),
+                0 0 20px rgba(255, 0, 255, 0.3);
+        }
+
+        .memory-item:hover::before {
+            opacity: 1;
+        }
+
+        .triplet {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.9rem;
+            flex-wrap: wrap;
+        }
+
+        .node {
+            color: var(--cyber-cyan);
+            font-weight: 600;
+            background: rgba(0, 255, 255, 0.1);
+            padding: 0.25rem 0.75rem;
+            border: 1px solid var(--cyber-cyan);
+            text-shadow: 0 0 5px var(--cyber-cyan);
+        }
+
+        .predicate {
+            color: var(--neon-green);
+            font-size: 0.85rem;
+            font-style: italic;
+            padding: 0.25rem 0.5rem;
+            background: rgba(57, 255, 20, 0.1);
+            border: 1px solid var(--neon-green);
+        }
+
+        .source-text {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-family: 'Rajdhani', sans-serif;
+            padding-left: 1rem;
+            border-left: 2px solid var(--cyber-magenta);
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 3rem 2rem;
+            color: var(--text-secondary);
+            font-style: italic;
+            font-size: 1rem;
+        }
+
+        #status-msg {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            padding: 1.25rem 2rem;
+            background: rgba(0, 0, 0, 0.9);
+            color: var(--cyber-cyan);
+            opacity: 0;
+            pointer-events: none;
+            transform: translateY(1rem);
+            border: 2px solid var(--cyber-cyan);
+            font-family: 'Share Tech Mono', monospace;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            box-shadow:
+                inset 0 0 20px rgba(0, 255, 255, 0.2),
+                0 0 30px rgba(0, 255, 255, 0.5);
+            transition: all 0.4s ease;
+            z-index: 1000;
+            text-shadow: 0 0 10px var(--cyber-cyan);
+        }
+
+        #status-msg.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <div class="logo">ORUNLA</div>
+        <div class="stats-bar">
+            <div class="stat-item">Nodes: <span id="nodes-count" class="stat-value">0</span></div>
+            <div class="stat-item">Edges: <span id="edges-count" class="stat-value">0</span></div>
+        </div>
+    </div>
+
+        <div class="main-grid">
+            <div class="card">
+                <h2>Integration Modes</h2>
+                <div class="servers-section">
+                    <div class="server-card">
+                        <h3>MCP Server</h3>
+                        <div class="server-port">Transport: stdio (no port required)</div>
+                        <div class="server-note">
+                            Add to claude_desktop_config.json or IDE MCP settings:
+                        </div>
+                        <div class="server-status">
+                            <code>{
+  "mcpServers": {
+    "orunla": {
+      "command": "C:/path/to/orunla_mcp.exe",
+      "args": []
+    }
+  }
+}</code>
+                        </div>
+                    </div>
+                    <div class="server-card">
+                        <h3>REST API Server</h3>
+                        <div class="server-status">
+                            <code>cargo run --bin orunla_cli -- serve --port 3000</code>
+                        </div>
+                        <div class="server-port">Port: 3000 (default) or 7432</div>
+                        <div class="server-note">
+                            HTTP endpoints for n8n, Make.com, webhooks, and external integrations.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+            <h2>Ingest Memory</h2>
+            <div class="ingest-grid">
+                <input type="text" id="ingest-input" placeholder="">
+                <button id="ingest-btn">Ingest</button>
+            </div>
+            <div class="ingest-actions">
+                <input type="file" id="file-input" accept=".txt,.md,.json,.csv" style="display: none;">
+                <button id="file-btn" class="file-btn">Upload File</button>
+                <span id="file-name" class="file-name"></span>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Recall Memories</h2>
+            <div class="input-group">
+                <input type="text" id="recall-input" placeholder="">
+                <button id="recall-btn">Recall</button>
+            </div>
+            <div id="memory-container" class="memory-list">
+                <div class="no-results">No memories to display</div>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2>Purge Context</h2>
+            <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1.5rem;">
+                Remove memories matching a topic or entity (e.g., "Google", "Python", "John Smith") and clean up orphaned nodes.
+            </p>
+            <div class="input-group">
+                <input type="text" id="purge-input" placeholder="">
+                <button id="purge-btn" style="background: linear-gradient(135deg, rgba(255, 0, 0, 0.2), rgba(255, 0, 100, 0.2)); border-color: #ff0066;">Purge</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="status-msg">Operation complete</div>
+
+    <script src="main.js"></script>
+</body>
+
+</html>

@@ -212,6 +212,180 @@ impl PatternMatcher {
                 },
                 confidence: 0.85,
             },
+
+            // ── Third-person document patterns ──────────────────────────
+
+            // "X works at/for Y" (third-person employment)
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+works?\s+(at|for)\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    let subject = caps.get(1)?.as_str().trim().to_string();
+                    let prep = caps.get(2)?.as_str();
+                    let object = caps.get(3)?.as_str().trim().to_string();
+                    Some(Triplet {
+                        subject,
+                        predicate: format!("works {}", prep),
+                        object,
+                        confidence: 0.90,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.90,
+            },
+            // "X founded/co-founded Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(?:co-)?founded\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "founded".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.92,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.92,
+            },
+            // "X, CEO/CTO/VP/Director/President/Founder of Y" (appositive)
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*),?\s+(?:CEO|CTO|COO|CFO|VP|Director|President|Founder|Chairman|Head)\s+(?:of\s+)?([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "leads".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.93,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.93,
+            },
+            // "X is the CEO/Director/... of Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+is\s+(?:the\s+)?(?:CEO|CTO|COO|CFO|VP|Director|President|Founder|Chairman|Head|Manager)\s+(?:of\s+)?([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "leads".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.92,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.92,
+            },
+            // "Y, founded/established by X" (passive)
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][\w]+(?:\s+[A-Z][\w]+)*),?\s+(?:founded|established|created)\s+by\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(2)?.as_str().trim().to_string(),
+                        predicate: "founded".to_string(),
+                        object: caps.get(1)?.as_str().trim().to_string(),
+                        confidence: 0.88,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.88,
+            },
+            // "X based/headquartered/located in Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][\w]+(?:\s+[A-Z][\w]+)*)\s+(?:is\s+)?(?:based|headquartered|located)\s+in\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "located in".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.90,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.90,
+            },
+            // "X acquired/bought Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][\w]+(?:\s+[A-Z][\w]+)*)\s+(?:acquired|bought)\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "acquired".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.90,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.90,
+            },
+            // "X partnered with Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][\w]+(?:\s+[A-Z][\w]+)*)\s+partner(?:ed|s)?\s+with\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "partners with".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.88,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.88,
+            },
+            // "X reports to Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+reports?\s+to\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "reports to".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.90,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.90,
+            },
+            // "X manages/leads/oversees Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+(manages?|leads?|oversees?)\s+(?:the\s+)?([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "manages".to_string(),
+                        object: caps.get(3)?.as_str().trim().to_string(),
+                        confidence: 0.88,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.88,
+            },
+            // "X owns Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][\w]+(?:\s+[A-Z][\w]+)*)\s+owns?\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "owns".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.90,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.90,
+            },
+            // "X joined Y"
+            ConversationalPattern {
+                regex: Regex::new(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)*)\s+joined\s+([A-Z][\w]+(?:\s+[A-Z][\w]+)*)").unwrap(),
+                extractor: |caps, _| {
+                    Some(Triplet {
+                        subject: caps.get(1)?.as_str().trim().to_string(),
+                        predicate: "joined".to_string(),
+                        object: caps.get(2)?.as_str().trim().to_string(),
+                        confidence: 0.88,
+                        source_span: (caps.get(0)?.start(), caps.get(0)?.end()),
+                    })
+                },
+                confidence: 0.88,
+            },
         ]
     }
 
@@ -281,5 +455,65 @@ mod tests {
         assert_eq!(triplets[0].subject, "Alice");
         assert_eq!(triplets[0].predicate, "is");
         assert_eq!(triplets[0].object, "my manager");
+    }
+
+    #[test]
+    fn test_third_person_works_at() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("John Smith works at Google");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "John Smith");
+        assert_eq!(triplets[0].predicate, "works at");
+        assert_eq!(triplets[0].object, "Google");
+    }
+
+    #[test]
+    fn test_third_person_founded() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("Jane Doe founded Acme Corp");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "Jane Doe");
+        assert_eq!(triplets[0].predicate, "founded");
+        assert_eq!(triplets[0].object, "Acme Corp");
+    }
+
+    #[test]
+    fn test_appositive_ceo() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("Jane Smith, CEO of Acme Corp");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "Jane Smith");
+        assert_eq!(triplets[0].predicate, "leads");
+        assert_eq!(triplets[0].object, "Acme Corp");
+    }
+
+    #[test]
+    fn test_headquartered_in() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("Acme Corp is headquartered in San Francisco");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "Acme Corp");
+        assert_eq!(triplets[0].predicate, "located in");
+        assert_eq!(triplets[0].object, "San Francisco");
+    }
+
+    #[test]
+    fn test_acquired() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("Google acquired YouTube");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "Google");
+        assert_eq!(triplets[0].predicate, "acquired");
+        assert_eq!(triplets[0].object, "YouTube");
+    }
+
+    #[test]
+    fn test_passive_founded() {
+        let matcher = PatternMatcher::new();
+        let triplets = matcher.extract_triplets("Acme Corp, founded by Jane Smith");
+        assert!(!triplets.is_empty());
+        assert_eq!(triplets[0].subject, "Jane Smith");
+        assert_eq!(triplets[0].predicate, "founded");
+        assert_eq!(triplets[0].object, "Acme Corp");
     }
 }

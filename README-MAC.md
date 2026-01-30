@@ -1,100 +1,223 @@
-# ORUNLA - Mac Installation Guide
+# Orunla - Mac Installation Guide
 
 > **Hybrid RAG Agent Memory System**
 > SQLite-based knowledge graph with text + graph search powered by GliNER
 
 ---
 
-## 📦 What's Included
+## What's Included
 
 ```
-orunla-mac/
-├── launch_orunla.sh    - Browser launcher script
-├── ui/                 - Web interface assets
-│   ├── index.html
-│   └── main.js
-└── README-MAC.md       - This file
+Orunla_v0.1.1_bundle/
+└── macOS/
+    ├── orunla-mac-aarch64/    ← Apple Silicon (M1/M2/M3/M4)
+    └── orunla-mac-x86_64/     ← Intel Macs
+
+Each architecture folder contains:
+├── orunla_cli            - CLI tool (ingest, recall, serve, maintenance)
+├── orunla_mcp            - MCP server (for Claude/Cursor/Cline)
+├── libonnxruntime.dylib  - ONNX Runtime (required for GliNER NER engine)
+├── launch_orunla.sh      - Browser UI launcher (starts server + opens browser)
+├── ui/
+│   ├── index.html        - Web dashboard
+│   └── main.js           - Dashboard logic
+├── README-MAC.md         - This file
+└── documentation/
+    ├── CLI.md            - CLI command reference
+    ├── MCP.md            - MCP integration guide
+    ├── API_REFERENCE.md  - REST API endpoints
+    ├── OVERVIEW.md       - Architecture overview
+    ├── LICENSE
+    └── THIRD_PARTY_NOTICES.md
 ```
 
-**Note:** The CLI binary is not included. You'll need to build it from source (Rust required).
+**Which folder do I use?**
+- **orunla-mac-aarch64** — Apple Silicon (M1, M2, M3, M4)
+- **orunla-mac-x86_64** — Intel Macs
+
+Not sure? Run `uname -m` in Terminal. If it says `arm64`, use aarch64. If it says `x86_64`, use x86_64.
 
 ---
 
-## 🚀 Quick Start
+## Quick Start
 
-### Step 1: Install Rust (if not already installed)
+### Step 1: Open your platform folder
+
+Open Terminal and navigate to the correct folder for your Mac:
 
 ```bash
-curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-source $HOME/.cargo/env
+# Apple Silicon (M1/M2/M3/M4):
+cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64
+
+# Intel Mac:
+cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-x86_64
 ```
 
-### Step 2: Build Orunla
+Replace `/path/to/` with wherever you extracted the bundle (e.g., `~/Downloads/`).
+
+### Step 2: Bypass macOS Gatekeeper
+
+Orunla is unsigned. macOS will block the binaries on first run. Remove the quarantine attribute:
 
 ```bash
-# Clone or download the Orunla source code
-cd orunla-mac
-
-# Build the CLI and MCP binaries
-cargo build --release --bin orunla_cli
-cargo build --release --bin orunla_mcp
-
-# Copy binaries to current directory
-cp target/release/orunla_cli .
-cp target/release/orunla_mcp .
+xattr -cr .
+chmod +x orunla_cli orunla_mcp launch_orunla.sh
 ```
 
-### Step 3: Launch Desktop Interface
+This only needs to be done once after extracting.
+
+### Step 3: Set up the ONNX Runtime
+
+The `libonnxruntime.dylib` must be discoverable by the binaries. Set the environment variable:
 
 ```bash
-# Make the launcher executable
-chmod +x launch_orunla.sh
+export ORT_DYLIB_PATH="$(pwd)/libonnxruntime.dylib"
+```
 
-# Run the launcher
+To make this permanent, add it to your shell profile (adjust path for your setup):
+
+```bash
+# For zsh (default on macOS) — Apple Silicon example:
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
+source ~/.zshrc
+
+# For bash:
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
+source ~/.bash_profile
+```
+
+Use `orunla-mac-x86_64` instead if you're on an Intel Mac.
+
+### Step 4: Verify it works
+
+```bash
+./orunla_cli stats
+```
+
+You should see node/edge counts and database size. On first run, the GliNER model (~40MB) will download automatically.
+
+---
+
+## Usage Options
+
+### Option 1: Desktop Web UI (Browser-based)
+
+From inside your platform folder, launch the server and web dashboard:
+
+```bash
 ./launch_orunla.sh
 ```
 
 This will:
-- Start the Orunla server on `http://localhost:3000`
-- Automatically open your browser to the dashboard
-- Keep the server running until you press `Ctrl+C`
+- Start the Orunla REST API server on `http://localhost:3000`
+- Open your browser to the dashboard
+- Keep running until you press `Ctrl+C`
 
----
+### Option 2: CLI (Terminal)
 
-## 🔌 MCP Integration (for Claude/Cursor/Cline)
+Run commands from inside your platform folder:
 
-### For Claude Desktop
+```bash
+# Ingest text
+./orunla_cli ingest "Project Titan is led by Mark."
 
-1. **Find your config file:**
+# Ingest a file
+./orunla_cli ingest-file ~/Documents/notes.txt
+
+# Recall memories
+./orunla_cli recall "Titan"
+./orunla_cli recall "Titan" --limit 5 --min-strength 0.2
+
+# View stats
+./orunla_cli stats
+
+# Delete a specific memory
+./orunla_cli delete "uuid-of-memory"
+
+# Purge all memories matching a topic
+./orunla_cli purge "outdated project"
+
+# Garbage collection (remove decayed memories)
+./orunla_cli gc --threshold 0.05
+
+# Deduplicate nodes
+./orunla_cli dedup
+```
+
+### Option 3: REST API Server
+
+Start the server for webhooks, n8n, Make.com, or custom integrations:
+
+```bash
+./orunla_cli serve --port 3000
+```
+
+To secure the API when exposing to a network:
+
+```bash
+./orunla_cli serve --port 3000 --api-key "your-secret-key"
+```
+
+See `documentation/API_REFERENCE.md` for all endpoints.
+
+### Option 4: MCP Integration (Claude Desktop / Cursor / Cline)
+
+The MCP server gives AI assistants direct access to your memory graph.
+
+**Important:** All paths in MCP configs must be absolute. Replace the example paths below with the actual location of your Orunla folder.
+
+#### Claude Desktop
+
+1. Open your config file:
    ```bash
    nano ~/Library/Application\ Support/Claude/claude_desktop_config.json
    ```
 
-2. **Add Orunla MCP server:**
+2. Add the Orunla MCP server (Apple Silicon example):
    ```json
    {
      "mcpServers": {
        "orunla": {
-         "command": "/Users/YourUsername/orunla-mac/orunla_mcp",
-         "args": []
+         "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+         "env": {
+           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+         }
        }
      }
    }
    ```
+   Replace `/Users/YourUsername/` with your actual home directory.
+   Use `orunla-mac-x86_64` instead if you're on an Intel Mac.
 
-   Replace `/Users/YourUsername/orunla-mac/orunla_mcp` with the actual path to your `orunla_mcp` binary.
+3. Restart Claude Desktop.
 
-3. **Restart Claude Desktop**
+#### Claude Code
 
-### For Cursor/Cline/Windsurf
+Add to `~/.claude/settings.json` or your project's `.claude/settings.json`:
 
-Add the same configuration to your IDE's MCP settings.
+```json
+{
+  "mcpServers": {
+    "orunla": {
+      "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "env": {
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+      }
+    }
+  }
+}
+```
+
+#### Cursor / Cline / Windsurf
+
+Add the same configuration to your IDE's MCP settings. The command and env are identical.
 
 ---
 
-## 💾 Where is my data stored?
+## Where is my data stored?
 
-All data is stored locally in:
+All data is stored locally:
+
 ```
 ~/.orunla/memory.db
 ```
@@ -102,94 +225,67 @@ All data is stored locally in:
 This SQLite database contains:
 - Knowledge graph (nodes + edges)
 - FTS5 full-text search index
-- Memory metadata and timestamps
+- Memory metadata, timestamps, and strength scores
+
+No data is ever sent to external servers. Everything runs locally.
 
 ---
 
-## 🔧 Advanced Usage
+## Troubleshooting
 
-### Using the CLI Directly
+### "orunla_cli" cannot be opened because it is from an unidentified developer
 
+Run the quarantine removal from Step 2:
 ```bash
-# Ingest text
-./orunla_cli ingest "Your knowledge here"
-
-# Recall memories
-./orunla_cli recall "search query"
-
-# View statistics
-./orunla_cli stats
-
-# Delete a memory
-./orunla_cli delete <edge-id>
-
-# Purge by topic
-./orunla_cli purge "topic"
+cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64
+xattr -cr .
+chmod +x orunla_cli orunla_mcp launch_orunla.sh
 ```
 
-See `CLI.md` for full documentation.
+### "Library not loaded" or ONNX Runtime errors
 
-### REST API Server
-
-For webhooks, n8n, Make.com, or custom integrations:
-
+The `ORT_DYLIB_PATH` environment variable is not set or points to the wrong location:
 ```bash
-./orunla_cli serve --port 3000
+# Check if it's set
+echo $ORT_DYLIB_PATH
+
+# Check if the file exists at that path
+ls -la $ORT_DYLIB_PATH
 ```
 
-API will be available at `http://localhost:3000`
+Make sure the path is absolute (starts with `/`), not relative.
 
-See `API_REFERENCE.md` for endpoint documentation.
+### Port 3000 already in use
 
----
+```bash
+lsof -ti:3000 | xargs kill -9
+```
 
-## 🛠️ Troubleshooting
+### MCP server not connecting
 
-### Build fails
-- **Rust not found:** Run `source $HOME/.cargo/env` after installing Rust
-- **Missing dependencies:** macOS may require Xcode Command Line Tools:
-  ```bash
-  xcode-select --install
-  ```
+- Use the **absolute path** to `orunla_mcp` in your config (no `~` or `$HOME` — spell out `/Users/YourUsername/...`)
+- Make sure `ORT_DYLIB_PATH` is included in the `env` block of your MCP config
+- Verify the binary is executable: `chmod +x orunla_mcp`
+- Restart Claude Desktop / Cursor completely (quit and reopen)
 
-### Launcher won't start
-- **Permission denied:** Run `chmod +x launch_orunla.sh`
-- **Binary not found:** Ensure you built the CLI: `cargo build --release --bin orunla_cli`
+### Model download fails
 
-### Port already in use
-- **Kill existing process:**
-  ```bash
-  lsof -ti:3000 | xargs kill -9
-  ```
-
-### MCP not connecting
-- **Verify path:** Use absolute path to `orunla_mcp` binary
-- **Check permissions:** Ensure binary is executable: `chmod +x orunla_mcp`
-- **Check logs:** Look for errors in Claude Desktop logs
-- **Restart assistant:** Completely quit and restart Claude/Cursor/Cline
+On first run, Orunla downloads the GliNER model (~40MB). If this fails:
+- Check your internet connection
+- Check you have write access to `~/.orunla/`
 
 ### Database errors
-- **Corrupted database:** Delete `~/.orunla/memory.db` to reset
-- **Permissions:** Ensure you have write access to `~/.orunla/`
+
+Reset by deleting the database:
+```bash
+rm ~/.orunla/memory.db
+```
 
 ---
 
-## 📚 Documentation
+## Documentation
 
-- **CLI Guide:** `CLI.md`
-- **MCP Guide:** `MCP.md`
-- **API Reference:** `API_REFERENCE.md`
-
----
-
-## 🆘 Support
-
-For issues, questions, or feature requests:
-- GitHub Issues: [your-repo-link]
-- Email: [your-email]
-
----
-
-## 📄 License
-
-[Your License Here]
+- **CLI Reference:** `documentation/CLI.md`
+- **MCP Guide:** `documentation/MCP.md`
+- **REST API:** `documentation/API_REFERENCE.md`
+- **Architecture:** `documentation/OVERVIEW.md`
