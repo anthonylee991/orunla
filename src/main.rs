@@ -4,9 +4,12 @@ use orunla::cli;
 use orunla::extractor::gliner::GlinerExtractor;
 use orunla::extractor::hybrid::HybridExtractor;
 use orunla::graph::{Edge, GraphStore, Node, NodeType};
+use orunla::licensing::{LicenseStore, LicenseValidator, Tier};
 use orunla::retriever::{search::HybridRetriever, RecallRequest, Retriever};
 use orunla::server;
 use orunla::storage::{sqlite::SqliteStorage, Storage, StorageConfig};
+use orunla::sync::changelog::ChangelogStore;
+use orunla::sync::client::{SyncClient, SyncConfig};
 use orunla::utils::document::{
     chunk_document, detect_file_type, parse_csv, parse_json_lines, read_file_content,
 };
@@ -57,9 +60,18 @@ async fn main() -> anyhow::Result<()> {
     let args = cli::Cli::parse();
 
     let config = StorageConfig::default();
-    let mut storage = SqliteStorage::new(config);
+    let mut storage = SqliteStorage::new(config.clone());
 
     storage.init()?;
+
+    // Initialize licensing
+    let license_store = LicenseStore::new(config.path.clone());
+    let license = license_store.ensure_license()?;
+    if license.tier == Tier::Trial {
+        if let Some(days) = LicenseValidator::trial_days_remaining(&license_store)? {
+            eprintln!("Orunla Trial: {} days remaining. Run 'orunla activate <key>' to unlock Pro.", days);
+        }
+    }
 
     match args.command {
         cli::Commands::Serve { port, api_key } => {
@@ -223,6 +235,72 @@ async fn main() -> anyhow::Result<()> {
                 }
             }
             println!("Deduplication complete. Merged {} nodes.", merged_count);
+        }
+        cli::Commands::Activate { license_key } => {
+            let validator = LicenseValidator::new();
+            match validator.activate(&license_key, &license_store).await {
+                Ok(tier) => {
+                    println!("License activated. Tier: {}", tier);
+                    if tier.allows_sync() {
+                        println!("Cross-device sync is now available.");
+                    }
+                }
+                Err(e) => {
+                    eprintln!("Activation failed: {}", e);
+                    std::process::exit(1);
+                }
+            }
+        }
+        cli::Commands::License => {
+            let license = license_store.ensure_license()?;
+            println!("Tier: {}", license.tier);
+            match license.tier {
+                Tier::Trial => {
+                    if let Some(days) = LicenseValidator::trial_days_remaining(&license_store)? {
+                        println!("Trial: {} days remaining", days);
+                    }
+                    println!("Sync: enabled (trial)");
+                }
+                Tier::Pro => {
+                    println!("Last validated: {}", license.last_validated.format("%Y-%m-%d %H:%M UTC"));
+                    println!("Sync: enabled");
+                }
+                Tier::Free => {
+                    println!("Sync: disabled (upgrade to Pro)");
+                }
+            }
+        }
+        cli::Commands::Sync => {
+            let license = license_store.ensure_license()?;
+            let tier = LicenseValidator::get_tier_local(&license_store)?;
+            if !tier.allows_sync() {
+                eprintln!("Sync requires Pro tier. Run 'orunla activate <key>' to upgrade.");
+                std::process::exit(1);
+            }
+
+            let device_id = storage.get_device_id()?;
+            let sync_config = SyncConfig {
+                device_id: device_id.clone(),
+                license_key: license.license_key.clone(),
+                ..SyncConfig::default()
+            };
+
+            let client = SyncClient::new(sync_config)?;
+
+            // Register device if first sync (idempotent)
+            if let Err(e) = client.register_device().await {
+                eprintln!("Device registration failed: {}. Trying sync anyway...", e);
+            }
+
+            match client.sync_once(&mut storage).await {
+                Ok((pushed, pulled)) => {
+                    println!("Sync complete. Pushed {} changes, pulled {} from other devices.", pushed, pulled);
+                }
+                Err(e) => {
+                    eprintln!("Sync failed: {}", e);
+                    std::process::exit(1);
+                }
+            }
         }
         cli::Commands::Benchmark { cases, verbose, mode } => {
             println!("Loading test cases from: {}", cases.display());

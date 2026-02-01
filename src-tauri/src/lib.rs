@@ -1,7 +1,10 @@
 use orunla::extractor::gliner::GlinerExtractor;
 use orunla::graph::{Edge, GraphStore, Node, NodeType};
+use orunla::licensing::{LicenseStore, LicenseValidator, Tier};
 use orunla::retriever::{search::HybridRetriever, RecallRequest, Retriever};
 use orunla::storage::{sqlite::SqliteStorage, Storage, StorageConfig};
+use orunla::sync::changelog::ChangelogStore;
+use orunla::sync::client::{SyncClient, SyncConfig};
 use orunla::utils::document::{chunk_document, parse_csv, parse_json_lines};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -12,6 +15,7 @@ use tokio::sync::Mutex;
 pub struct AppState {
     pub storage: Mutex<SqliteStorage>,
     pub extractor: Arc<GlinerExtractor>,
+    pub license_store: LicenseStore,
 }
 
 #[derive(Serialize)]
@@ -229,6 +233,55 @@ async fn purge_topic(state: State<'_, AppState>, query: String) -> Result<String
     ))
 }
 
+#[derive(Serialize)]
+pub struct LicenseStatus {
+    pub tier: String,
+    pub trial_days_remaining: Option<i64>,
+    pub sync_enabled: bool,
+    pub last_validated: String,
+}
+
+#[tauri::command]
+async fn activate_license(
+    state: State<'_, AppState>,
+    key: String,
+) -> Result<LicenseStatus, String> {
+    let validator = LicenseValidator::new();
+    let tier = validator
+        .activate(&key, &state.license_store)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    Ok(LicenseStatus {
+        tier: tier.to_string(),
+        trial_days_remaining: None,
+        sync_enabled: tier.allows_sync(),
+        last_validated: chrono::Utc::now().format("%Y-%m-%d %H:%M UTC").to_string(),
+    })
+}
+
+#[tauri::command]
+async fn get_license_status(state: State<'_, AppState>) -> Result<LicenseStatus, String> {
+    let license = state
+        .license_store
+        .ensure_license()
+        .map_err(|e| e.to_string())?;
+    let tier = LicenseValidator::get_tier_local(&state.license_store).map_err(|e| e.to_string())?;
+    let trial_days = if tier == Tier::Trial {
+        LicenseValidator::trial_days_remaining(&state.license_store)
+            .map_err(|e| e.to_string())?
+    } else {
+        None
+    };
+
+    Ok(LicenseStatus {
+        tier: tier.to_string(),
+        trial_days_remaining: trial_days,
+        sync_enabled: tier.allows_sync(),
+        last_validated: license.last_validated.format("%Y-%m-%d %H:%M UTC").to_string(),
+    })
+}
+
 #[cfg(windows)]
 fn fix_dll_path() {
     if let Ok(exe_path) = std::env::current_exe() {
@@ -273,8 +326,46 @@ pub fn run() {
     fix_dll_path();
 
     let config = StorageConfig::default();
-    let storage = SqliteStorage::new(config);
+    let storage = SqliteStorage::new(config.clone());
     storage.init().expect("Failed to initialize database");
+
+    // Initialize licensing
+    let license_store = LicenseStore::new(config.path.clone());
+    let license = license_store.ensure_license().expect("Failed to initialize license");
+    if license.tier == Tier::Trial {
+        if let Some(days) = LicenseValidator::trial_days_remaining(&license_store).unwrap_or(None) {
+            eprintln!("Orunla Trial: {} days remaining.", days);
+        }
+    }
+
+    // Start background sync if Pro/Trial
+    let tier = LicenseValidator::get_tier_local(&license_store).unwrap_or(Tier::Free);
+    if tier.allows_sync() && !license.license_key.is_empty() {
+        let device_id = storage.get_device_id().unwrap_or_default();
+        if !device_id.is_empty() {
+            let sync_config = SyncConfig {
+                device_id,
+                license_key: license.license_key.clone(),
+                ..SyncConfig::default()
+            };
+            let db_path = config.path.clone();
+            tokio::spawn(async move {
+                let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+                loop {
+                    interval.tick().await;
+                    if let Ok(sync_client) = SyncClient::new(sync_config.clone()) {
+                        let inner_config = StorageConfig { path: db_path.clone(), ..StorageConfig::default() };
+                        let mut sync_storage = SqliteStorage::new(inner_config);
+                        if sync_storage.init().is_ok() {
+                            if let Err(e) = sync_client.sync_once(&mut sync_storage).await {
+                                eprintln!("[tauri-sync] Error: {}", e);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+    }
 
     println!("Initializing smart extractor (GliNER) in Tauri...");
     let extractor = Arc::new(GlinerExtractor::new().expect("Failed to initialize GliNER"));
@@ -283,6 +374,7 @@ pub fn run() {
         .manage(AppState {
             storage: Mutex::new(storage),
             extractor,
+            license_store,
         })
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -301,7 +393,9 @@ pub fn run() {
             get_stats,
             ingest_file,
             delete_memory,
-            purge_topic
+            purge_topic,
+            activate_license,
+            get_license_status
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

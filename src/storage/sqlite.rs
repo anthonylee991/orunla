@@ -1,5 +1,6 @@
 use crate::graph::{Edge, EdgeId, GraphStore, Node, NodeId, NodeType, SubGraph};
 use crate::storage::{Storage, StorageConfig, StorageStats};
+use crate::sync::changelog::{ChangeEvent, ChangeEventType, ChangelogStore};
 use anyhow::{Context, Result};
 use rusqlite::Connection;
 use serde_json::Value;
@@ -86,6 +87,9 @@ impl Storage for SqliteStorage {
             COMMIT;",
         )
         .context("Failed to initialize database schema")?;
+
+        // Also initialize changelog tables for sync
+        self.init_changelog()?;
 
         Ok(())
     }
@@ -599,14 +603,234 @@ impl GraphStore for SqliteStorage {
 
     fn merge_nodes(&mut self, winner_id: &NodeId, loser_id: &NodeId) -> Result<()> {
         let conn = self.get_connection()?;
-        
+
         // Rebind edges
         conn.execute("UPDATE edges SET source_id = ?1 WHERE source_id = ?2", [winner_id, loser_id])?;
         conn.execute("UPDATE edges SET target_id = ?1 WHERE target_id = ?2", [winner_id, loser_id])?;
-        
+
         // Delete loser node
         conn.execute("DELETE FROM nodes WHERE id = ?1", [loser_id])?;
-        
+
+        Ok(())
+    }
+}
+
+impl ChangelogStore for SqliteStorage {
+    fn init_changelog(&self) -> Result<()> {
+        let conn = self.get_connection()?;
+        conn.execute_batch(
+            "CREATE TABLE IF NOT EXISTS changelog (
+                id TEXT PRIMARY KEY,
+                event_type TEXT NOT NULL,
+                entity_id TEXT NOT NULL,
+                payload TEXT NOT NULL,
+                vector_clock INTEGER NOT NULL,
+                device_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                synced INTEGER DEFAULT 0
+            );
+            CREATE INDEX IF NOT EXISTS idx_changelog_unsynced ON changelog(synced) WHERE synced = 0;
+            CREATE INDEX IF NOT EXISTS idx_changelog_vector ON changelog(device_id, vector_clock);
+
+            CREATE TABLE IF NOT EXISTS sync_state (
+                id INTEGER PRIMARY KEY CHECK (id = 1),
+                device_id TEXT NOT NULL,
+                last_pull_clock INTEGER DEFAULT 0
+            );",
+        )
+        .context("Failed to create changelog tables")?;
+        Ok(())
+    }
+
+    fn log_change(&self, device_id: &str, event_type: ChangeEventType) -> Result<i64> {
+        let conn = self.get_connection()?;
+
+        let entity_id = match &event_type {
+            ChangeEventType::NodeAdd { node } => node.id.clone(),
+            ChangeEventType::EdgeAdd { edge } => edge.id.clone(),
+            ChangeEventType::EdgeDelete { edge_id } => edge_id.clone(),
+            ChangeEventType::NodeMerge { winner_id, .. } => winner_id.clone(),
+        };
+
+        let event_type_str = match &event_type {
+            ChangeEventType::NodeAdd { .. } => "node_add",
+            ChangeEventType::EdgeAdd { .. } => "edge_add",
+            ChangeEventType::EdgeDelete { .. } => "edge_delete",
+            ChangeEventType::NodeMerge { .. } => "node_merge",
+        };
+
+        let payload = serde_json::to_string(&event_type)
+            .context("Failed to serialize change event")?;
+
+        // Get next vector_clock for this device
+        let vector_clock: i64 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(vector_clock), 0) + 1 FROM changelog WHERE device_id = ?1",
+                [device_id],
+                |row| row.get(0),
+            )
+            .unwrap_or(1);
+
+        let id = uuid::Uuid::new_v4().to_string();
+        let now = chrono::Utc::now().to_rfc3339();
+
+        conn.execute(
+            "INSERT INTO changelog (id, event_type, entity_id, payload, vector_clock, device_id, created_at, synced)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, 0)",
+            (&id, event_type_str, &entity_id, &payload, &vector_clock, device_id, &now),
+        )
+        .context("Failed to log change event")?;
+
+        Ok(vector_clock)
+    }
+
+    fn get_unsynced_events(&self) -> Result<Vec<ChangeEvent>> {
+        let conn = self.get_connection()?;
+        let mut stmt = conn.prepare(
+            "SELECT id, event_type, entity_id, payload, vector_clock, device_id, created_at, synced
+             FROM changelog WHERE synced = 0 ORDER BY vector_clock ASC",
+        )?;
+
+        let events = stmt
+            .query_map([], |row| {
+                let payload_str: String = row.get(3)?;
+                let created_at_str: String = row.get(6)?;
+
+                Ok(ChangeEvent {
+                    id: row.get(0)?,
+                    event_type: serde_json::from_str(&payload_str).unwrap(),
+                    entity_id: row.get(2)?,
+                    vector_clock: row.get(4)?,
+                    device_id: row.get(5)?,
+                    created_at: parse_date(&created_at_str),
+                    synced: false,
+                })
+            })?
+            .filter_map(|r| r.ok())
+            .collect();
+
+        Ok(events)
+    }
+
+    fn mark_synced(&self, event_ids: &[String]) -> Result<()> {
+        let conn = self.get_connection()?;
+        for id in event_ids {
+            conn.execute("UPDATE changelog SET synced = 1 WHERE id = ?1", [id])?;
+        }
+        Ok(())
+    }
+
+    fn get_latest_vector_clock(&self) -> Result<i64> {
+        let conn = self.get_connection()?;
+        let clock: i64 = conn
+            .query_row(
+                "SELECT COALESCE(MAX(vector_clock), 0) FROM changelog",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        Ok(clock)
+    }
+
+    fn get_last_pull_clock(&self) -> Result<i64> {
+        let conn = self.get_connection()?;
+        let clock: i64 = conn
+            .query_row(
+                "SELECT last_pull_clock FROM sync_state WHERE id = 1",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap_or(0);
+        Ok(clock)
+    }
+
+    fn set_last_pull_clock(&self, clock: i64) -> Result<()> {
+        let conn = self.get_connection()?;
+        conn.execute(
+            "INSERT INTO sync_state (id, device_id, last_pull_clock)
+             VALUES (1, '', ?1)
+             ON CONFLICT(id) DO UPDATE SET last_pull_clock = excluded.last_pull_clock",
+            [clock],
+        )?;
+        Ok(())
+    }
+
+    fn get_device_id(&self) -> Result<String> {
+        let conn = self.get_connection()?;
+
+        // Try to read existing device_id from sync_state
+        let existing: std::result::Result<String, _> = conn.query_row(
+            "SELECT device_id FROM sync_state WHERE id = 1 AND device_id != ''",
+            [],
+            |row| row.get(0),
+        );
+
+        match existing {
+            Ok(id) if !id.is_empty() => Ok(id),
+            _ => {
+                // Generate new device_id and store it
+                let device_id = uuid::Uuid::new_v4().to_string();
+                conn.execute(
+                    "INSERT INTO sync_state (id, device_id, last_pull_clock)
+                     VALUES (1, ?1, 0)
+                     ON CONFLICT(id) DO UPDATE SET device_id = excluded.device_id",
+                    [&device_id],
+                )?;
+                Ok(device_id)
+            }
+        }
+    }
+
+    fn apply_remote_event(&mut self, event: ChangeEvent) -> Result<()> {
+        match event.event_type {
+            ChangeEventType::NodeAdd { node } => {
+                // Dedup: skip if node with this ID already exists
+                if self.get_node(&node.id)?.is_none() {
+                    self.add_node(node)?;
+                }
+            }
+            ChangeEventType::EdgeAdd { edge } => {
+                // Dedup: skip if edge with this ID already exists
+                let conn = self.get_connection()?;
+                let exists: bool = conn
+                    .query_row(
+                        "SELECT COUNT(*) > 0 FROM edges WHERE id = ?1",
+                        [&edge.id],
+                        |row| row.get(0),
+                    )
+                    .unwrap_or(false);
+
+                if !exists {
+                    // Ensure source and target nodes exist before adding edge
+                    // (they should have been synced via NodeAdd events)
+                    self.add_edge(edge)?;
+                }
+            }
+            ChangeEventType::EdgeDelete { edge_id } => {
+                // Tombstone: delete wins. If edge doesn't exist, no-op.
+                let conn = self.get_connection()?;
+                let exists: bool = conn
+                    .query_row(
+                        "SELECT COUNT(*) > 0 FROM edges WHERE id = ?1",
+                        [&edge_id],
+                        |row| row.get(0),
+                    )
+                    .unwrap_or(false);
+
+                if exists {
+                    self.delete_edge(&edge_id)?;
+                }
+            }
+            ChangeEventType::NodeMerge {
+                winner_id,
+                loser_id,
+            } => {
+                // Only apply if both nodes exist
+                if self.get_node(&winner_id)?.is_some() && self.get_node(&loser_id)?.is_some() {
+                    self.merge_nodes(&winner_id, &loser_id)?;
+                }
+            }
+        }
         Ok(())
     }
 }

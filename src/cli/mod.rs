@@ -60,6 +60,15 @@ pub enum Commands {
     },
     /// Deduplicate nodes using local similarity heuristics
     Dedup,
+    /// Activate a Pro license key
+    Activate {
+        /// License key from purchase email
+        license_key: String,
+    },
+    /// Show current license status
+    License,
+    /// Manually sync memories with cloud (Pro only)
+    Sync,
     /// Run extraction benchmark to evaluate extractor quality
     Benchmark {
         /// Path to test cases JSON file
