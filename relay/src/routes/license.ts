@@ -46,6 +46,10 @@ licenseRoutes.post('/validate', rateLimiter(5), async (c) => {
     if (!res.ok) {
       const errText = await res.text().catch(() => '');
       console.log(`[license] Supabase responded ${res.status}: ${errText}`);
+      // 400 = bad input (e.g. non-UUID key) → treat as invalid, not server error
+      if (res.status === 400) {
+        return c.json({ valid: false });
+      }
       return c.json({ error: 'License service unavailable' }, 503);
     }
 
