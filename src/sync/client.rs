@@ -3,7 +3,7 @@ use crate::sync::encryption::SyncEncryption;
 use anyhow::Result;
 
 /// Relay URL -- same as licensing, separate service for sync endpoints.
-const RELAY_URL: &str = "https://orunla-relay.up.railway.app";
+const RELAY_URL: &str = "https://orunla-production.up.railway.app";
 
 /// Configuration for the sync client.
 #[derive(Debug, Clone)]

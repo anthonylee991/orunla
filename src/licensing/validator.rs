@@ -6,7 +6,7 @@ use serde::Deserialize;
 
 /// Relay URL -- the only external endpoint the client needs to know.
 /// Supabase credentials live server-side on Railway, never in the binary.
-const RELAY_URL: &str = "https://orunla-relay.up.railway.app";
+const RELAY_URL: &str = "https://orunla-production.up.railway.app";
 
 const TRIAL_DAYS: i64 = 14;
 const REVALIDATION_DAYS: i64 = 7;
