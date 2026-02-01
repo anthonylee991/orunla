@@ -3,7 +3,7 @@ import { rateLimiter } from '../middleware/rate-limit.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const PRODUCT_ID = 'orunla_pro';
+const PRODUCT_ID = 'orunla_standard';
 
 export const licenseRoutes = new Hono();
 

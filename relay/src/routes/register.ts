@@ -6,7 +6,7 @@ import { eq } from 'drizzle-orm';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-const PRODUCT_ID = 'orunla_pro';
+const PRODUCT_ID = 'orunla_standard';
 
 export const registerRoutes = new Hono();
 
