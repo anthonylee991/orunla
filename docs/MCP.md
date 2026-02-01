@@ -14,7 +14,7 @@ Orunla includes a **Model Context Protocol (MCP)** server, allowing AI agents (l
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.1.1_bundle/windows/orunla_mcp.exe"
+      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
     }
   }
 }
@@ -26,9 +26,9 @@ Orunla includes a **Model Context Protocol (MCP)** server, allowing AI agents (l
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -49,7 +49,7 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.1.1_bundle/windows/orunla_mcp.exe"
+      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
     }
   }
 }
@@ -61,9 +61,9 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -141,8 +141,33 @@ You can talk to your agent naturally, and it will use these tools in the backgro
 
 ---
 
+## Licensing & Sync
+
+The MCP server respects your current license tier:
+
+- **Free / Expired Trial:** All 8 memory tools work normally. Sync is disabled.
+- **Trial (14 days):** All tools work. Background sync runs every 30 seconds.
+- **Pro:** All tools work. Background sync runs every 30 seconds.
+
+On startup, the MCP server logs your license status to stderr:
+```
+[orunla] License: pro | Sync: enabled | Device: DESKTOP-ABC
+```
+
+To activate Pro, use the CLI:
+```bash
+orunla_cli activate "your-license-key"
+```
+
+---
+
 ## Privacy Note
 
-The MCP server communicates over standard input/output (Stdio). **No data is ever sent to external servers.** All memory persists only in your local database:
+The MCP server communicates over standard input/output (Stdio). All memory operations run 100% locally.
+
+- **Free tier:** No data is ever sent to external servers. Everything stays in your local database.
+- **Pro tier with sync:** Only encrypted data (AES-256-GCM) is transmitted to the sync relay. The relay cannot read your memories — it only stores and forwards ciphertext between your devices.
+
+**Database location:**
 - macOS: `~/.orunla/memory.db`
 - Windows: `%USERPROFILE%\.orunla\memory.db`

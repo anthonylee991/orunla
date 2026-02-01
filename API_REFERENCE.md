@@ -6,7 +6,7 @@ The Orunla background server provides a JSON REST API for integrating with AI ag
 
 ---
 
-## 🔐 Security & Authentication
+## Security & Authentication
 
 ### Starting the Server with API Key Protection
 
@@ -69,13 +69,13 @@ If you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
 
 ---
 
-## 🏥 Health & Stats
+## Health & Stats
 
 ### `GET /health`
 Verify if the server is running.
 - **Response:**
   ```json
-  { "status": "ok", "version": "0.1.0" }
+  { "status": "ok", "version": "0.3.0" }
   ```
 
 ### `GET /stats`
@@ -91,7 +91,7 @@ Get high-level database statistics.
 
 ---
 
-## 📥 Ingestion (Adding Data)
+## Ingestion (Adding Data)
 
 ### `POST /ingest`
 Extract facts from raw text and add them to the knowledge graph.
@@ -123,7 +123,7 @@ Upload a file (`.txt`, `.md`, `.csv`, or `.json`) to be processed.
 
 ---
 
-## 🔍 Retrieval (Getting Data)
+## Retrieval (Getting Data)
 
 ### `POST /recall`
 Search for facts based on a query. Uses hybrid keyword and strength-decay ranking.
@@ -154,7 +154,7 @@ Search for facts based on a query. Uses hybrid keyword and strength-decay rankin
 
 ---
 
-## 🧹 Maintenance & Deletion
+## Maintenance & Deletion
 
 ### `DELETE /memories/:id`
 Permanently delete a specific memory by its ID.
@@ -173,7 +173,7 @@ Delete all memories matching a keyword query.
 
 ---
 
-## 🧠 Data Sustainability
+## Data Sustainability
 
 ### `POST /gc`
 Manually trigger Garbage Collection to prune decayed memories.
@@ -185,3 +185,11 @@ Manually trigger Garbage Collection to prune decayed memories.
   ```json
   { "status": "ok", "deleted_memories": 2, "cleaned_nodes": 1 }
   ```
+
+---
+
+## Background Sync (Pro)
+
+When the server is running with an active Pro license (or during the 14-day trial), a background sync loop runs automatically every 30 seconds. This pushes local changes and pulls remote changes from your other devices.
+
+No additional API endpoints are needed — sync is fully automatic. Use the CLI `orunla_cli license` command to check your sync status, and `orunla_cli activate <key>` to activate Pro.

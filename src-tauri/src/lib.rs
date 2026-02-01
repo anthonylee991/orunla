@@ -338,34 +338,25 @@ pub fn run() {
         }
     }
 
-    // Start background sync if Pro/Trial
+    // Prepare background sync config (spawned inside setup where Tokio runtime exists)
     let tier = LicenseValidator::get_tier_local(&license_store).unwrap_or(Tier::Free);
-    if tier.allows_sync() && !license.license_key.is_empty() {
+    let bg_sync_config = if tier.allows_sync() && !license.license_key.is_empty() {
         let device_id = storage.get_device_id().unwrap_or_default();
         if !device_id.is_empty() {
-            let sync_config = SyncConfig {
-                device_id,
-                license_key: license.license_key.clone(),
-                ..SyncConfig::default()
-            };
-            let db_path = config.path.clone();
-            tokio::spawn(async move {
-                let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-                loop {
-                    interval.tick().await;
-                    if let Ok(sync_client) = SyncClient::new(sync_config.clone()) {
-                        let inner_config = StorageConfig { path: db_path.clone(), ..StorageConfig::default() };
-                        let mut sync_storage = SqliteStorage::new(inner_config);
-                        if sync_storage.init().is_ok() {
-                            if let Err(e) = sync_client.sync_once(&mut sync_storage).await {
-                                eprintln!("[tauri-sync] Error: {}", e);
-                            }
-                        }
-                    }
-                }
-            });
+            Some((
+                SyncConfig {
+                    device_id,
+                    license_key: license.license_key.clone(),
+                    ..SyncConfig::default()
+                },
+                config.path.clone(),
+            ))
+        } else {
+            None
         }
-    }
+    } else {
+        None
+    };
 
     println!("Initializing smart extractor (GliNER) in Tauri...");
     let extractor = Arc::new(GlinerExtractor::new().expect("Failed to initialize GliNER"));
@@ -376,7 +367,7 @@ pub fn run() {
             extractor,
             license_store,
         })
-        .setup(|app| {
+        .setup(move |app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
                     tauri_plugin_log::Builder::default()
@@ -384,6 +375,26 @@ pub fn run() {
                         .build(),
                 )?;
             }
+
+            // Start background sync inside Tauri's async runtime
+            if let Some((sync_config, db_path)) = bg_sync_config {
+                tauri::async_runtime::spawn(async move {
+                    let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
+                    loop {
+                        interval.tick().await;
+                        if let Ok(sync_client) = SyncClient::new(sync_config.clone()) {
+                            let inner_config = StorageConfig { path: db_path.clone(), ..StorageConfig::default() };
+                            let mut sync_storage = SqliteStorage::new(inner_config);
+                            if sync_storage.init().is_ok() {
+                                if let Err(e) = sync_client.sync_once(&mut sync_storage).await {
+                                    eprintln!("[tauri-sync] Error: {}", e);
+                                }
+                            }
+                        }
+                    }
+                });
+            }
+
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())

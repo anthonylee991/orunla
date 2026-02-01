@@ -10,6 +10,7 @@ Think of it as a "second brain" that:
 - Recalls information when you need it
 - Forgets things that stop being relevant (just like human memory)
 - Keeps everything 100% private on your own computer
+- Optionally syncs across your devices with end-to-end encryption (Pro)
 
 ## How Orunla Works: The Big Picture
 
@@ -61,7 +62,7 @@ This is where Orunla gets smart. Human memory doesn't work like a filing cabinet
 
 **The Formula:**
 ```
-Strength = decay × access_boost × confidence
+Strength = decay x access_boost x confidence
 
 Where:
 - decay = e^(-days_since_access / 30)
@@ -78,11 +79,11 @@ Where:
 
 **Example Timeline:**
 - Day 0 (fresh memory): strength = 1.0
-- Day 30 (not accessed): strength ≈ 0.37
-- Day 60 (not accessed): strength ≈ 0.14
-- Day 90 (not accessed): strength ≈ 0.05
+- Day 30 (not accessed): strength ~ 0.37
+- Day 60 (not accessed): strength ~ 0.14
+- Day 90 (not accessed): strength ~ 0.05
 
-But if you access a memory 5 times, the access boost (≈ 1.79) slows this decay significantly.
+But if you access a memory 5 times, the access boost (~1.79) slows this decay significantly.
 
 ### 4. Hybrid Retrieval: How Recall Works
 
@@ -112,7 +113,7 @@ Query: "Sarah's job"
 - FTS5 finds edges with "Sarah" or "job" in source text
 - Graph search finds nodes labeled "Sarah" and predicates like "works at"
 - Combines results, calculates strength for each
-- Returns: `Sarah → works at → Microsoft` (strength: 0.85)
+- Returns: `Sarah -> works at -> Microsoft` (strength: 0.85)
 
 ### 5. Garbage Collection: Automatic Forgetting
 
@@ -174,7 +175,7 @@ Sometimes you want to completely remove memories about a specific topic. The **p
 
 **How it works:**
 ```bash
-orunla_cli purge --query "Microsoft"
+orunla_cli purge "Microsoft"
 ```
 
 1. Runs a full hybrid search for the query
@@ -213,16 +214,80 @@ GliNER is a neural network that runs **locally** on your computer using ONNX Run
 Input: *"Python is a programming language created by Guido van Rossum at CWI in Amsterdam."*
 
 Extracted triplets:
-- `Python` (software) → `is a` → `programming language` (concept) - confidence: 0.92
-- `Python` (software) → `created by` → `Guido van Rossum` (person) - confidence: 0.88
-- `Guido van Rossum` (person) → `at` → `CWI` (organization) - confidence: 0.85
-- `CWI` (organization) → `in` → `Amsterdam` (location) - confidence: 0.91
+- `Python` (software) -> `is a` -> `programming language` (concept) - confidence: 0.92
+- `Python` (software) -> `created by` -> `Guido van Rossum` (person) - confidence: 0.88
+- `Guido van Rossum` (person) -> `at` -> `CWI` (organization) - confidence: 0.85
+- `CWI` (organization) -> `in` -> `Amsterdam` (location) - confidence: 0.91
 
 **Why local AI matters:**
 - No API costs
 - Works offline
 - Complete privacy
 - Fast inference (milliseconds per extraction)
+
+### 9. Cross-Device Sync (Pro)
+
+Orunla v0.3.0 introduces **cross-device sync** for Pro users. This keeps your knowledge graph synchronized across all your computers.
+
+**How it works:**
+
+1. Every mutation to your local graph (add node, add edge, delete edge, merge nodes) is logged to a **changelog table** in your SQLite database
+2. A background sync loop (every 30 seconds) pushes unsynced changelog entries to a **relay server**
+3. The sync loop also pulls changes from other devices and applies them locally
+4. All data is **end-to-end encrypted** with AES-256-GCM before leaving your machine
+
+**Encryption details:**
+- Encryption key is derived from your license key using PBKDF2
+- The same license key on all your devices means they share the same encryption key
+- The relay server only stores and forwards ciphertext — it cannot read your memories
+- Each event has a unique random nonce to prevent replay attacks
+
+**Conflict resolution:**
+- Insert conflicts (same entity on two devices): deduplicated by entity ID
+- Delete conflicts: applied regardless (idempotent)
+- Merge conflicts: applied if entities exist locally, skipped otherwise
+- General fallback: last-write-wins using timestamps
+
+**Sync architecture:**
+```
+Device A (home)                    Relay Server                    Device B (work)
+   |                                  |                                |
+   |-- encrypt + push events -------->|                                |
+   |                                  |<------ pull events (encrypted) |
+   |                                  |------- encrypted events ------>|
+   |<------ pull events (encrypted) --|                                |
+   |                                  |                                |
+   decrypt + apply locally            stores only ciphertext           decrypt + apply locally
+```
+
+**What syncs:**
+- New nodes and edges (facts you add)
+- Deleted edges (facts you remove)
+- Node merges (deduplication results)
+
+**What does NOT sync:**
+- Access counts and last-accessed timestamps (these are local recall stats)
+- Garbage collection (each device manages its own decay)
+
+## Licensing
+
+Orunla uses a **Free / Pro** model:
+
+### Free Tier
+- All local features work forever — no time limits, no artificial restrictions
+- Ingest, recall, search, delete, purge, GC, dedup, desktop app, CLI, MCP, REST API
+- Your data is 100% yours
+
+### Trial (14 Days)
+- On first launch, you get a 14-day free trial of Pro features
+- After the trial ends, you automatically move to the Free tier with no interruption
+
+### Pro Tier
+- Adds cross-device sync
+- Activate with: `orunla_cli activate "your-license-key"`
+- License is validated against the server on activation, then revalidated every 7 days
+- 3-day grace period if validation fails (e.g., you're offline)
+- After 10 days without successful validation, tier downgrades to Free until reconnected
 
 ## How You Can Use Orunla
 
@@ -231,10 +296,11 @@ Extracted triplets:
 **What it is:** A graphical application with cyberpunk UI
 **How to use:**
 1. Double-click `Orunla.exe`
-2. Type facts in the Ingest box → click "Ingest"
+2. Type facts in the Ingest box -> click "Ingest"
 3. Upload files via "Upload File" button
 4. Search memories in the Recall tab
 5. Purge topics you no longer need
+6. Activate your Pro license in the settings panel
 
 **Best for:** Personal use, quick access, visual interface
 
@@ -264,13 +330,13 @@ Extracted triplets:
 **How to use:**
 ```bash
 # Add a memory
-orunla_cli ingest --text "The API key is 12345"
+orunla_cli ingest "The API key is 12345"
 
 # Search memories
-orunla_cli recall --query "API key"
+orunla_cli recall "API key"
 
 # Upload a file
-orunla_cli ingest --file notes.txt
+orunla_cli ingest-file notes.txt
 
 # Run maintenance
 orunla_cli gc --threshold 0.1
@@ -278,6 +344,13 @@ orunla_cli dedup
 
 # Get statistics
 orunla_cli stats
+
+# Licensing
+orunla_cli license
+orunla_cli activate "your-key"
+
+# Manual sync (Pro)
+orunla_cli sync
 ```
 
 **Best for:** Scripting, automation, scheduled maintenance
@@ -318,12 +391,15 @@ curl -X POST http://localhost:3000/purge \
 - `nodes` table: All entities (people, places, concepts)
 - `edges` table: All relationships/facts
 - `edges_fts` table: Full-text search index
+- `license` table: Encrypted license information
+- `changelog` table: Sync event log (Pro)
+- `sync_state` table: Sync cursor tracking (Pro)
 
 **Viewing your data:**
 You can open `memory.db` with [DB Browser for SQLite](https://sqlitebrowser.org/) to manually browse your knowledge graph.
 
 **Privacy:**
-Everything stays on your computer. No cloud sync, no telemetry, no data sharing. Your memories are yours.
+Everything stays on your computer by default. If you enable Pro sync, only AES-256-GCM encrypted data leaves your machine. The sync relay cannot decrypt your memories.
 
 ## Use Cases: Why Orunla Is Useful
 
@@ -339,9 +415,9 @@ Everything stays on your computer. No cloud sync, no telemetry, no data sharing.
 "What should I know about planning Sarah's party?"
 
 **Orunla recalls:**
-- Sarah → is allergic to → peanuts (strength: 0.82)
-- Sarah → loves → Harry Potter (strength: 0.78)
-- Sarah → birthday → June 15th (strength: 0.91)
+- Sarah -> is allergic to -> peanuts (strength: 0.82)
+- Sarah -> loves -> Harry Potter (strength: 0.78)
+- Sarah -> birthday -> June 15th (strength: 0.91)
 
 **Result:** You avoid a dangerous allergen, pick the perfect theme, and remember the date.
 
@@ -361,7 +437,7 @@ Everything stays on your computer. No cloud sync, no telemetry, no data sharing.
 **Support agent searches Orunla:** "laptop return"
 
 **Orunla recalls:**
-- Electronics → return policy → 14 days (strength: 0.95)
+- Electronics -> return policy -> 14 days (strength: 0.95)
 
 **Result:** Instant, accurate answer. No searching through documents or asking managers.
 
@@ -379,13 +455,30 @@ Everything stays on your computer. No cloud sync, no telemetry, no data sharing.
 **You search:** "transformer origins"
 
 **Orunla recalls the entire lineage:**
-- Transformer → introduced in → Attention Is All You Need
-- Attention Is All You Need → published by → Vaswani et al.
-- Attention Is All You Need → published in → 2017
-- BERT → based on → Transformer encoders
-- GPT-3 → uses → Transformer decoders
+- Transformer -> introduced in -> Attention Is All You Need
+- Attention Is All You Need -> published by -> Vaswani et al.
+- Attention Is All You Need -> published in -> 2017
+- BERT -> based on -> Transformer encoders
+- GPT-3 -> uses -> Transformer decoders
 
 **Result:** You instantly map the history and evolution of the concept.
+
+---
+
+### Multi-Device Workflow (Pro)
+**Scenario:** You use Orunla on your work laptop and home desktop.
+
+**At work, you ingest meeting notes:**
+- "Q4 budget approved for $500K"
+- "Launch date moved to March 15"
+
+**At home, you ask Claude:**
+"What's the latest on the Q4 budget?"
+
+**Orunla recalls (synced from work):**
+- Q4 budget -> approved for -> $500K (strength: 0.95)
+
+**Result:** Your knowledge follows you between devices automatically, encrypted end-to-end.
 
 ---
 
@@ -403,12 +496,7 @@ Everything stays on your computer. No cloud sync, no telemetry, no data sharing.
 **You search:** "auth database"
 
 **Orunla recalls:**
-- Auth database → connection string → .env.production (strength: 0.64)
-
-**You search:** "redis cache"
-
-**Orunla recalls:**
-- Redis cache → expires after → 3600 seconds (strength: 0.58)
+- Auth database -> connection string -> .env.production (strength: 0.64)
 
 **Result:** No more hunting through Slack history or outdated wikis.
 
@@ -453,12 +541,7 @@ Let me create an endpoint following these patterns..."
 **You search:** "Q4 report"
 
 **Orunla recalls:**
-- Tom → will send → Q4 report by Friday (strength: 0.71)
-
-**You search:** "CRM"
-
-**Orunla recalls:**
-- Lisa → is researching → CRM vendors (strength: 0.69)
+- Tom -> will send -> Q4 report by Friday (strength: 0.71)
 
 **Result:** You always know who owns what without re-reading pages of notes.
 
@@ -478,7 +561,7 @@ Let me create an endpoint following these patterns..."
 **You search:** "mutable reference"
 
 **Orunla recalls:**
-- mutable reference → syntax → `&mut` (strength: 0.88)
+- mutable reference -> syntax -> `&mut` (strength: 0.88)
 
 **Result:** Quick reference without leaving your editor.
 
@@ -498,7 +581,7 @@ Let me create an endpoint following these patterns..."
 
 ### vs. Cloud Memory (Rewind, Mem.ai)
 **Cloud services:** Your data on their servers, subscription fees, privacy concerns
-**Orunla:** Local-first. Your data, your computer, your control.
+**Orunla:** Local-first. Your data, your computer, your control. Optional encrypted sync.
 
 ### vs. AI Chat History
 **Chat history:** Dumping ground of text, hard to search, no structure
@@ -507,46 +590,55 @@ Let me create an endpoint following these patterns..."
 ## Technical Architecture Summary
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                     Input Layer                             │
-│  (Desktop UI, CLI, MCP Server, REST API)                    │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                  GliNER Extractor                           │
-│  (ONNX Runtime, Local AI, Entity Recognition)               │
-│  Input: Raw text                                            │
-│  Output: Triplets (subject, predicate, object, confidence)  │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Knowledge Graph Storage                     │
-│  • SQLite Database (nodes, edges tables)                    │
-│  • FTS5 Full-Text Search Index                              │
-│  • Tracks: creation time, access time, access count         │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Hybrid Retriever                            │
-│  • Pass 1: FTS5 search on source text                       │
-│  • Pass 2: Graph search on node labels & predicates         │
-│  • Combine results                                          │
-│  • Calculate strength (Ebbinghaus decay)                    │
-│  • Filter by confidence & strength                          │
-│  • Rank by relevance                                        │
-└───────────────────────┬─────────────────────────────────────┘
-                        │
-                        ▼
-┌─────────────────────────────────────────────────────────────┐
-│                 Maintenance Layer                           │
-│  • Garbage Collection (delete weak memories)                │
-│  • Node Deduplication (merge duplicates)                    │
-│  • Orphan Cleanup (remove disconnected nodes)               │
-│  • Topic Purging (delete by query)                          │
-└─────────────────────────────────────────────────────────────┘
++-------------------------------------------------------------+
+|                     Input Layer                               |
+|  (Desktop UI, CLI, MCP Server, REST API)                      |
++----------------------------+--------------------------------+
+                             |
+                             v
++-------------------------------------------------------------+
+|                  GliNER Extractor                             |
+|  (ONNX Runtime, Local AI, Entity Recognition)                 |
+|  Input: Raw text                                              |
+|  Output: Triplets (subject, predicate, object, confidence)    |
++----------------------------+--------------------------------+
+                             |
+                             v
++-------------------------------------------------------------+
+|                 Knowledge Graph Storage                       |
+|  * SQLite Database (nodes, edges tables)                      |
+|  * FTS5 Full-Text Search Index                                |
+|  * Tracks: creation time, access time, access count           |
++----------------------------+--------------------------------+
+                             |
+                             v
++-------------------------------------------------------------+
+|                 Hybrid Retriever                              |
+|  * Pass 1: FTS5 search on source text                         |
+|  * Pass 2: Graph search on node labels & predicates           |
+|  * Combine results                                            |
+|  * Calculate strength (Ebbinghaus decay)                      |
+|  * Filter by confidence & strength                            |
+|  * Rank by relevance                                          |
++----------------------------+--------------------------------+
+                             |
+                             v
++-------------------------------------------------------------+
+|                 Maintenance Layer                              |
+|  * Garbage Collection (delete weak memories)                  |
+|  * Node Deduplication (merge duplicates)                      |
+|  * Orphan Cleanup (remove disconnected nodes)                 |
+|  * Topic Purging (delete by query)                            |
++----------------------------+--------------------------------+
+                             |
+                             v
++-------------------------------------------------------------+
+|               Cross-Device Sync (Pro)                         |
+|  * Changelog captures every graph mutation                    |
+|  * AES-256-GCM encryption before transmission                 |
+|  * Push/pull to encrypted relay every 30 seconds              |
+|  * Conflict resolution (dedup, last-write-wins)               |
++-------------------------------------------------------------+
 ```
 
 ## Performance Characteristics
@@ -564,13 +656,18 @@ Let me create an endpoint following these patterns..."
 **Storage:**
 - ~1KB per edge (relationship)
 - ~100 bytes per node (entity)
-- 10,000 facts ≈ 10MB database
+- 10,000 facts ~ 10MB database
 - SQLite handles millions of records efficiently
 
 **Memory Usage:**
 - GliNER model: ~200MB RAM when loaded
 - SQLite: Minimal (kilobytes for typical queries)
 - Desktop app: ~50-100MB total
+
+**Sync Overhead (Pro):**
+- Background sync runs every 30 seconds
+- Negligible CPU/network usage (only transmits new changes)
+- Each changelog event is typically <1KB encrypted
 
 ## System Requirements
 
@@ -579,6 +676,7 @@ Let me create an endpoint following these patterns..."
 - RAM: 2GB available
 - Disk: 500MB (includes AI model)
 - CPU: Any modern x64 processor
+- Internet: Required for first-run model download. Optional for Pro sync.
 
 **Recommended:**
 - RAM: 4GB+ for large datasets
@@ -591,7 +689,6 @@ While Orunla is feature-complete today, potential enhancements could include:
 - **Temporal queries**: "What did I know about X in January?"
 - **Confidence decay**: Low-confidence facts decay faster
 - **Graph visualization**: See your knowledge web visually
-- **Multi-database sync**: Share memories across devices (opt-in)
 - **Custom entity types**: Define your own entity categories
 - **Embedding search**: Optional vector similarity (hybrid mode)
 - **Conflict resolution**: Handle contradictory facts intelligently
@@ -605,8 +702,9 @@ While Orunla is feature-complete today, potential enhancements could include:
 - Uses Ebbinghaus forgetting curve for decay
 - Combines FTS5 text search + graph traversal
 - Offers desktop UI, MCP integration, CLI, and REST API
-- Completely private (everything stays on your computer)
-- Zero cloud dependencies, zero API costs
+- Completely private (everything stays on your computer by default)
+- Optional end-to-end encrypted cross-device sync (Pro)
+- Zero cloud dependencies for core features, zero API costs
 
 **It's useful for:**
 - Personal knowledge management
@@ -615,6 +713,7 @@ While Orunla is feature-complete today, potential enhancements could include:
 - Customer support knowledge bases
 - Developer documentation
 - Meeting notes and task tracking
+- Multi-device workflows (Pro)
 - Any scenario where you need to remember relationships between facts
 
 **Core philosophy:**

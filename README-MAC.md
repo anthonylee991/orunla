@@ -8,20 +8,20 @@
 ## What's Included
 
 ```
-Orunla_v0.1.1_bundle/
+Orunla_v0.3.0_bundle/
 └── macOS/
     ├── orunla-mac-aarch64/    ← Apple Silicon (M1/M2/M3/M4)
     └── orunla-mac-x86_64/     ← Intel Macs
 
 Each architecture folder contains:
-├── orunla_cli            - CLI tool (ingest, recall, serve, maintenance)
+├── orunla_cli            - CLI tool (ingest, recall, serve, licensing, sync)
 ├── orunla_mcp            - MCP server (for Claude/Cursor/Cline)
 ├── libonnxruntime.dylib  - ONNX Runtime (required for GliNER NER engine)
 ├── launch_orunla.sh      - Browser UI launcher (starts server + opens browser)
 ├── ui/
 │   ├── index.html        - Web dashboard
 │   └── main.js           - Dashboard logic
-├── README-MAC.md         - This file
+├── README.md             - This file
 └── documentation/
     ├── CLI.md            - CLI command reference
     ├── MCP.md            - MCP integration guide
@@ -47,10 +47,10 @@ Open Terminal and navigate to the correct folder for your Mac:
 
 ```bash
 # Apple Silicon (M1/M2/M3/M4):
-cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64
+cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64
 
 # Intel Mac:
-cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-x86_64
+cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-x86_64
 ```
 
 Replace `/path/to/` with wherever you extracted the bundle (e.g., `~/Downloads/`).
@@ -78,11 +78,11 @@ To make this permanent, add it to your shell profile (adjust path for your setup
 
 ```bash
 # For zsh (default on macOS) — Apple Silicon example:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
 source ~/.zshrc
 
 # For bash:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
@@ -178,9 +178,9 @@ The MCP server gives AI assistants direct access to your memory graph.
    {
      "mcpServers": {
        "orunla": {
-         "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+         "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
          "env": {
-           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
          }
        }
      }
@@ -199,9 +199,9 @@ Add to `~/.claude/settings.json` or your project's `.claude/settings.json`:
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -211,6 +211,53 @@ Add to `~/.claude/settings.json` or your project's `.claude/settings.json`:
 #### Cursor / Cline / Windsurf
 
 Add the same configuration to your IDE's MCP settings. The command and env are identical.
+
+---
+
+## Licensing
+
+Orunla uses a **Free / Pro** licensing model.
+
+### Free Tier (Default)
+- **All local features are free forever** — no time limits, no feature restrictions
+- Ingest, recall, search, delete, purge, garbage collection, deduplication
+- Desktop web UI, CLI, MCP server, REST API — all fully functional
+- Your data stays 100% on your machine
+
+### Trial (14 Days)
+- On first launch, you automatically get a **14-day free trial of Pro features**
+- This includes cross-device sync (see below)
+- After the trial, you keep all Free features with no interruption
+
+### Pro Tier
+- Adds **cross-device sync**: keep your memories in sync across multiple computers
+- Activate with a license key from your purchase email:
+
+```bash
+./orunla_cli activate "your-license-key-here"
+```
+
+- Check your current license status:
+
+```bash
+./orunla_cli license
+```
+
+### Cross-Device Sync (Pro)
+
+Sync your knowledge graph across all your devices automatically:
+
+1. **Activate the same license key** on each device:
+   ```bash
+   ./orunla_cli activate "your-license-key"
+   ```
+2. **Sync happens automatically** every 30 seconds when using the MCP server, REST API server, or desktop web UI
+3. **Manual sync** (one-time push + pull) via CLI:
+   ```bash
+   ./orunla_cli sync
+   ```
+
+All synced data is **end-to-end encrypted** (AES-256-GCM). The relay server only sees ciphertext — it cannot read your memories.
 
 ---
 
@@ -226,8 +273,10 @@ This SQLite database contains:
 - Knowledge graph (nodes + edges)
 - FTS5 full-text search index
 - Memory metadata, timestamps, and strength scores
+- Encrypted license information
+- Sync changelog (Pro only)
 
-No data is ever sent to external servers. Everything runs locally.
+**Privacy:** All core functionality runs 100% locally. No data is sent to external servers unless you enable Pro sync, in which case only encrypted data is transmitted to the sync relay.
 
 ---
 
@@ -237,7 +286,7 @@ No data is ever sent to external servers. Everything runs locally.
 
 Run the quarantine removal from Step 2:
 ```bash
-cd /path/to/Orunla_v0.1.1_bundle/macOS/orunla-mac-aarch64
+cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64
 xattr -cr .
 chmod +x orunla_cli orunla_mcp launch_orunla.sh
 ```
