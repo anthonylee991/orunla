@@ -214,6 +214,6 @@ jobs:
           TAG="${{ github.ref_name }}"
           # workflow_dispatch may not have a tag, use a default
           if [ -z "$TAG" ] || [ "$TAG" = "" ]; then
-            TAG="v0.3.0"
+            TAG="v0.3.1"
           fi
           gh release upload "$TAG" "${{ matrix.dist_name }}.zip" --clobber
