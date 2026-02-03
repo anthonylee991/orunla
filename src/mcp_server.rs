@@ -11,19 +11,6 @@ use serde_json::json;
 use std::sync::Arc;
 use tokio::io::{AsyncBufReadExt, AsyncWriteExt, BufReader, BufWriter};
 use tokio::sync::Mutex;
-use std::fs::OpenOptions;
-use std::io::Write;
-
-fn log_to_file(msg: &str) {
-    let mut file = OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open("C:\\Users\\User\\Desktop\\Code-Projects\\agent_mem\\mcp_debug.log")
-        .unwrap();
-    if let Err(e) = writeln!(file, "{}", msg) {
-        eprintln!("Failed to write to log: {}", e);
-    }
-}
 #[derive(Serialize, Deserialize)]
 pub struct Memory {
     pub id: String,
@@ -693,7 +680,6 @@ async fn main() -> Result<()> {
     let mut stdout = BufWriter::new(tokio::io::stdout());
 
     while let Some(line) = reader.next_line().await? {
-        log_to_file(&format!("Received: {}", line));
         if line.is_empty() {
             continue;
         }
@@ -701,7 +687,6 @@ async fn main() -> Result<()> {
         let msg: MCPMessage = match serde_json::from_str(&line) {
             Ok(m) => m,
             Err(e) => {
-                log_to_file(&format!("Failed to parse: {}", e));
                 eprintln!("Failed to parse message: {}", e);
                 continue;
             }
@@ -709,20 +694,14 @@ async fn main() -> Result<()> {
 
         match server.handle_message(&msg).await {
             Ok(Some(response)) => {
-                log_to_file("Sending response...");
                 let response_str = serde_json::to_string(&response).unwrap();
                 stdout.write_all(response_str.as_bytes()).await?;
                 stdout.write_all(b"\n").await?;
                 stdout.flush().await?;
-                log_to_file("Response sent.");
             }
-            Ok(None) => {
-                log_to_file("No response (notification/unknown).");
-            }
+            Ok(None) => {}
             Err(e) => {
-                let err_msg = format!("Error handling message: {}", e);
-                log_to_file(&err_msg);
-                eprintln!("{}", err_msg);
+                eprintln!("Error handling message: {}", e);
 
                 // Send JSON-RPC error back if there was an ID
                 if let Some(id) = &msg.id {
@@ -738,7 +717,6 @@ async fn main() -> Result<()> {
                         let _ = stdout.write_all(response_str.as_bytes()).await;
                         let _ = stdout.write_all(b"\n").await;
                         let _ = stdout.flush().await;
-                        log_to_file("Error response sent.");
                     }
                 }
             }

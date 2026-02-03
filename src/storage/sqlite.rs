@@ -132,7 +132,13 @@ impl GraphStore for SqliteStorage {
             (&node.id, &node.label, &node_type, &node.created_at.to_rfc3339(), &metadata),
         ).context("Failed to insert node")?;
 
-        Ok(node.id)
+        // Log change for sync
+        let node_id = node.id.clone();
+        if let Ok(device_id) = self.get_device_id() {
+            let _ = self.log_change(&device_id, ChangeEventType::NodeAdd { node });
+        }
+
+        Ok(node_id)
     }
 
     fn get_node(&self, id: &NodeId) -> Result<Option<Node>> {
@@ -229,11 +235,11 @@ impl GraphStore for SqliteStorage {
     fn add_edge(&mut self, edge: Edge) -> Result<EdgeId> {
         let conn = self.get_connection()?;
         conn.execute(
-            "INSERT INTO edges (id, source_id, target_id, predicate, created_at, last_accessed, access_count, source_text, ext_source_id, confidence) 
+            "INSERT INTO edges (id, source_id, target_id, predicate, created_at, last_accessed, access_count, source_text, ext_source_id, confidence)
              VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10)",
             (
-                &edge.id, &edge.source, &edge.target, &edge.predicate, 
-                &edge.created_at.to_rfc3339(), &edge.last_accessed.to_rfc3339(), 
+                &edge.id, &edge.source, &edge.target, &edge.predicate,
+                &edge.created_at.to_rfc3339(), &edge.last_accessed.to_rfc3339(),
                 &edge.access_count, &edge.source_text, &edge.source_id, &edge.confidence
             ),
         ).context("Failed to insert edge")?;
@@ -245,7 +251,13 @@ impl GraphStore for SqliteStorage {
         )
         .context("Failed to update FTS index")?;
 
-        Ok(edge.id)
+        // Log change for sync
+        let edge_id = edge.id.clone();
+        if let Ok(device_id) = self.get_device_id() {
+            let _ = self.log_change(&device_id, ChangeEventType::EdgeAdd { edge });
+        }
+
+        Ok(edge_id)
     }
 
     fn get_edges_from(&self, node_id: &NodeId) -> Result<Vec<Edge>> {
@@ -521,10 +533,15 @@ impl GraphStore for SqliteStorage {
     }
 
     fn delete_edge(&mut self, id: &EdgeId) -> Result<()> {
+        // Log change for sync (before deleting)
+        if let Ok(device_id) = self.get_device_id() {
+            let _ = self.log_change(&device_id, ChangeEventType::EdgeDelete { edge_id: id.clone() });
+        }
+
         let conn = self.get_connection()?;
         // Sync FTS delete for external content table
         conn.execute(
-            "INSERT INTO edges_fts(edges_fts, rowid, source_text) 
+            "INSERT INTO edges_fts(edges_fts, rowid, source_text)
              SELECT 'delete', rowid, source_text FROM edges WHERE id = ?1",
             [id],
         )?;
