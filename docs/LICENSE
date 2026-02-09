@@ -1,0 +1,128 @@
+Orunla End-User License Agreement (EULA)
+Copyright (c) 2025-2026 AI Plus Automation. All rights reserved.
+
+IMPORTANT: READ THIS AGREEMENT CAREFULLY BEFORE USING THIS SOFTWARE.
+
+By installing, copying, or otherwise using Orunla ("Software"), you agree
+to be bound by the terms of this license agreement.
+
+1. GRANT OF LICENSE
+
+   AI Plus Automation grants you a non-exclusive, non-transferable license
+   to install and use the Software on your devices, subject to the terms
+   of the plan you have purchased:
+
+   a) FREE TIER: You may use the Software with the features available in
+      the free tier at no cost, for personal or commercial use. The free
+      tier includes all local memory operations (ingestion, recall, search,
+      deletion, maintenance) across all interfaces (desktop app, CLI, MCP
+      server, REST API). Free tier features are available indefinitely with
+      no time limits or artificial restrictions.
+
+   b) PRO LICENSE (Monthly): You may use the Software with all Pro features
+      for the duration of your active subscription. Pro features include
+      cross-device sync. If your subscription lapses or is cancelled,
+      access to Pro features will revert to the free tier. All locally
+      stored data remains accessible.
+
+   c) PRO LICENSE (Lifetime): You may use the Software with all Pro features
+      indefinitely for the lifetime of the product. "Lifetime" means the
+      lifetime of the Software product, not the lifetime of the licensee.
+
+   d) TRIAL: On first installation, a 14-day trial of Pro features is
+      provided at no cost. After the trial period, access to Pro features
+      reverts to the free tier unless a Pro license is purchased.
+
+2. RESTRICTIONS
+
+   You may NOT:
+   a) Copy, modify, or distribute the Software or any portion thereof;
+   b) Reverse engineer, decompile, or disassemble the Software;
+   c) Rent, lease, lend, sell, or sublicense the Software;
+   d) Remove or alter any proprietary notices, labels, or marks;
+   e) Use the Software to develop a competing product or service;
+   f) Share, transfer, or redistribute your license key to any third party.
+
+3. DATA AND PRIVACY
+
+   a) The Software stores all data locally on your device in a SQLite
+      database. Your data is not uploaded to any cloud service unless you
+      enable cross-device sync (Pro feature).
+   b) When cross-device sync is enabled, your data is encrypted on your
+      device using AES-256-GCM before transmission. The sync relay server
+      stores and forwards only encrypted data and cannot read your memories.
+   c) License validation requires periodic communication with our servers
+      to verify your license status. No personal data beyond the license
+      key is transmitted during this process.
+
+4. INTELLECTUAL PROPERTY
+
+   The Software and all copies thereof are proprietary to AI Plus Automation
+   and title thereto remains in AI Plus Automation. All applicable rights to
+   patents, copyrights, trademarks, and trade secrets in the Software are
+   and shall remain in AI Plus Automation.
+
+5. THIRD-PARTY COMPONENTS
+
+   The Software may include third-party open source components, which are
+   subject to their own license terms. A list of these components and their
+   licenses is provided in the THIRD_PARTY_NOTICES file distributed with the
+   Software. Your use of these components is governed by their respective
+   licenses.
+
+6. DISCLAIMER OF WARRANTIES
+
+   THE SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EXPRESS
+   OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+   MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT.
+   AI PLUS AUTOMATION DOES NOT WARRANT THAT THE SOFTWARE WILL BE
+   UNINTERRUPTED OR ERROR-FREE.
+
+7. LIMITATION OF LIABILITY
+
+   IN NO EVENT SHALL AI PLUS AUTOMATION BE LIABLE FOR ANY INDIRECT,
+   INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING
+   BUT NOT LIMITED TO LOSS OF DATA, BUSINESS INTERRUPTION, OR LOST
+   PROFITS) ARISING OUT OF OR IN CONNECTION WITH THIS LICENSE OR THE USE
+   OF THE SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES.
+
+   AI PLUS AUTOMATION'S TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT PAID
+   BY YOU FOR THE SOFTWARE LICENSE.
+
+8. ONLINE SERVICES
+
+   The Software may rely on online services (such as the sync relay and
+   license validation server) that are provided on an "as available" basis.
+   AI Plus Automation reserves the right to modify, suspend, or discontinue
+   these services at any time. In the event of discontinuation, locally
+   stored data and offline features of the Software will continue to
+   function.
+
+9. TERMINATION
+
+   a) This license is effective until terminated.
+   b) It will terminate automatically if you fail to comply with any term
+      of this agreement.
+   c) Upon termination, you must destroy all copies of the Software in
+      your possession.
+   d) Sections 4, 6, 7, and 10 shall survive termination.
+
+10. GOVERNING LAW
+
+    This agreement shall be governed by and construed in accordance with
+    applicable law, without regard to conflict of law principles.
+
+11. ENTIRE AGREEMENT
+
+    This agreement constitutes the entire agreement between you and
+    AI Plus Automation regarding the Software and supersedes all prior
+    agreements and understandings, whether written or oral.
+
+12. SEVERABILITY
+
+    If any provision of this Agreement is held to be unenforceable, the
+    remaining provisions shall continue in full force and effect.
+
+---
+
+For questions or support: https://www.aiplusautomation.com

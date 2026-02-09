@@ -4,6 +4,68 @@ Orunla includes a **Model Context Protocol (MCP)** server, allowing AI agents (l
 
 ---
 
+## Finding Config File Locations
+
+Before setting up Orunla, you'll need to find where your config files live.
+
+### Windows
+
+**What is `%APPDATA%`?**
+This is a shortcut to your user's application data folder. To open it:
+1. Press `Win + R` to open the Run dialog
+2. Type `%APPDATA%` and press Enter
+3. This opens `C:\Users\YourName\AppData\Roaming\`
+
+**What is `%USERPROFILE%`?**
+This is your home folder. To open it:
+1. Press `Win + R` to open the Run dialog
+2. Type `%USERPROFILE%` and press Enter
+3. This opens `C:\Users\YourName\`
+
+**Tip:** You can also paste these paths directly into File Explorer's address bar.
+
+### macOS
+
+**What is `~`?**
+The tilde (`~`) means your home folder: `/Users/YourUsername/`
+
+**How to access `~/Library/Application Support/`:**
+1. Open Finder
+2. Click **Go** in the menu bar
+3. Hold the **Option** key — "Library" will appear in the menu
+4. Click **Library**, then navigate to **Application Support**
+
+Or in Terminal: `open ~/Library/Application\ Support/`
+
+**How to access `~/.claude/`:**
+Folders starting with `.` are hidden by default. In Terminal:
+```bash
+open ~/.claude
+```
+Or press `Cmd + Shift + .` in Finder to show hidden files.
+
+---
+
+## If the Config File Doesn't Exist
+
+**Create it!** If the file doesn't exist, simply create a new text file with the exact name specified.
+
+**Windows example:**
+1. Navigate to `%APPDATA%\Claude\`
+2. If the `Claude` folder doesn't exist, create it
+3. Create a new file called `claude_desktop_config.json`
+4. Open it with Notepad and paste the configuration
+
+**macOS example:**
+1. Navigate to `~/.claude/`
+2. If the `.claude` folder doesn't exist, create it: `mkdir ~/.claude`
+3. Create the file: `touch ~/.claude/mcp_settings.json`
+4. Edit with any text editor
+
+**Important:** Make sure the file has the correct extension (`.json`, not `.json.txt`). On Windows, you may need to enable "Show file extensions" in File Explorer settings.
+
+---
+
 ## Installation
 
 ### Claude Desktop
@@ -14,7 +76,8 @@ Orunla includes a **Model Context Protocol (MCP)** server, allowing AI agents (l
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "args": []
     }
   }
 }
@@ -26,9 +89,9 @@ Orunla includes a **Model Context Protocol (MCP)** server, allowing AI agents (l
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -41,29 +104,30 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 
 ---
 
-### Claude Code
+### Claude Code (VSCode Extension)
 
-**Windows** — edit `%USERPROFILE%\.claude\settings.json`:
+**Windows** — edit `%USERPROFILE%\.claude\mcp_settings.json`:
 
 ```json
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "args": []
     }
   }
 }
 ```
 
-**macOS** — edit `~/.claude/settings.json`:
+**macOS** — edit `~/.claude/mcp_settings.json`:
 
 ```json
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -72,9 +136,72 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 
 ---
 
-### Cursor / Cline / Windsurf
+### Cursor / Windsurf / Cline
 
-Add the same configuration to your IDE's MCP settings. The command and env values are identical to the examples above.
+These IDEs use the same MCP config format as Claude Desktop. Add the configuration to your IDE's MCP settings file:
+
+| IDE | Config File (Windows) | Config File (macOS) |
+|-----|----------------------|---------------------|
+| **Cursor** | `%USERPROFILE%\.cursor\mcp.json` | `~/.cursor/mcp.json` |
+| **Windsurf** | `%USERPROFILE%\.windsurf\mcp.json` | `~/.windsurf/mcp.json` |
+| **Cline** | VSCode Settings → Cline → MCP Servers | Same |
+
+The `command`, `args`, and `env` values are identical to the Claude Desktop examples above.
+
+---
+
+### OpenCode
+
+**Windows** — create or edit `opencode.json` in your project root:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "orunla": {
+      "type": "local",
+      "command": [
+        "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe"
+      ],
+      "enabled": true
+    }
+  }
+}
+```
+
+**macOS** — create or edit `opencode.json` in your project root:
+
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "orunla": {
+      "type": "local",
+      "command": [
+        "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp"
+      ],
+      "env": {
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
+      },
+      "enabled": true
+    }
+  }
+}
+```
+
+**Note:** OpenCode uses an array for `command` instead of a plain string. The `"type": "local"` and `"enabled": true` fields are required.
+
+**Optional — Agent Prompt:** OpenCode supports custom agent prompts that instruct the AI to use Orunla proactively. Add an `agent` block to your `opencode.json`:
+
+```json
+{
+  "agent": {
+    "build": {
+      "prompt": "You have access to Orunla memory tools. Use them proactively:\n\n- At the start of each conversation, use memory_search to recall relevant context\n- When the user shares important facts, preferences, or decisions, use memory_add to save them\n- When the user says \"remember\", \"don't forget\", or \"for future reference\", always save to memory\n- Structure memories as subject-predicate-object triplets (e.g., \"ProjectX\" - \"uses\" - \"React 18\")"
+    }
+  }
+}
+```
 
 ---
 
@@ -83,7 +210,68 @@ Add the same configuration to your IDE's MCP settings. The command and env value
 - **Windows:** The `onnxruntime.dll` must be in the same folder as `orunla_mcp.exe`. Do not move the executable without the DLL.
 - **macOS:** The `env` block with `ORT_DYLIB_PATH` is **required**. Without it, the MCP server cannot load the ONNX Runtime.
 - **macOS:** Use absolute paths (starting with `/`). Do not use `~` or `$HOME` in JSON config files.
-- **Windows:** Use forward slashes (`/`) in JSON config paths, not backslashes.
+- **Windows:** Both forward slashes (`/`) and escaped backslashes (`\\`) work in JSON config paths. We recommend backslashes with proper escaping for consistency with Windows conventions.
+
+---
+
+## Troubleshooting
+
+### MCP Tools Not Appearing
+
+1. **Verify the path is correct** — Make sure the path to `orunla_mcp.exe` exists and is spelled correctly.
+2. **Restart your IDE** — After editing the config file, restart Claude Code/VSCode completely.
+3. **Check the MCP server logs** — In VSCode, open Output panel (View → Output) and select "MCP Servers" from the dropdown.
+
+### Manual Testing
+
+You can test the MCP server directly in PowerShell:
+
+```powershell
+cd C:\Users\YourName\Orunla_Windows_v0.3.3
+.\orunla_mcp.exe
+```
+
+If it starts correctly, you'll see:
+```
+[orunla] License: trial | Sync: enabled
+```
+
+The server then waits for JSON-RPC input on stdin. Press Ctrl+C to exit.
+
+### Common Windows Issues
+
+**"Path not found" errors:**
+- Ensure your Orunla folder path has no special characters
+- Try using the full path with escaped backslashes (`\\`)
+
+**DLL loading errors:**
+- Make sure `onnxruntime.dll` is in the same folder as the executable
+- Do not move `orunla_mcp.exe` without also moving the DLL
+
+### Advanced Configuration (Windows)
+
+If you encounter issues, you can try adding optional parameters:
+
+```json
+{
+  "mcpServers": {
+    "orunla": {
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "args": [],
+      "cwd": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3",
+      "env": {
+        "USERPROFILE": "C:\\Users\\YourName",
+        "HOME": "C:\\Users\\YourName"
+      }
+    }
+  }
+}
+```
+
+- `cwd` — Sets the working directory for the MCP server
+- `env` — Explicitly provides environment variables
+
+These are usually not needed, but can help in edge cases.
 
 ---
 
@@ -141,6 +329,86 @@ You can talk to your agent naturally, and it will use these tools in the backgro
 
 ---
 
+## Making Orunla Work Autonomously
+
+By default, AI agents won't use Orunla unless you explicitly ask them to. To make your agent **proactively** save and recall memories, add instructions to your system prompt or `CLAUDE.md` file.
+
+### For Claude Code
+
+Create or edit `~/.claude/CLAUDE.md` (macOS) or `%USERPROFILE%\.claude\CLAUDE.md` (Windows):
+
+```markdown
+## Memory Management (Orunla MCP)
+
+**IMPORTANT**: Orunla is your long-term memory system. Use it PROACTIVELY.
+
+### Session Start (MANDATORY)
+1. ALWAYS search memory first: `memory_search` with project name or key terms
+2. Review memories to understand prior work, decisions, and context
+3. Greet user with context: "I recall that [project] uses [tech]..."
+
+### When to Save Memories (Be Aggressive)
+Save memories using `memory_add` whenever you learn:
+
+**Constants (persistent facts)**:
+- Project names and what they do
+- Tech stack choices and configurations
+- API keys, URLs, ports, folder structures
+- Platform-specific requirements or workarounds
+
+**Preferences (user choices)**:
+- Coding style preferences
+- Preferred libraries or approaches
+- Naming conventions
+
+**Context (session-relevant)**:
+- Current feature being worked on
+- Bugs encountered and their fixes
+- Architectural decisions made
+
+### Trigger Phrases (Save Memory When You Hear):
+- "Remember that..."
+- "For future reference..."
+- "This project uses..."
+- "We decided to..."
+- "Don't forget..."
+- Any architectural decision
+- Any bug fix that took significant effort
+
+### Memory Quality Guidelines
+- Be specific: "ProjectX uses PostgreSQL 15" not "uses a database"
+- Include context: Why was this decision made?
+- Use consistent subjects: Use project name as subject when possible
+
+### Automatic Behaviors
+1. **Session start**: Search Orunla for project memories FIRST
+2. **During work**: Save new learnings immediately (don't batch)
+3. **After milestones**: Save architectural decisions
+```
+
+### For Claude Desktop / Other Agents
+
+Add similar instructions to your system prompt or custom instructions. The key behaviors to instruct:
+
+1. **On session start**: Search memory for relevant context before responding
+2. **During conversation**: Save important facts as they come up
+3. **Trigger phrases**: Listen for "remember", "don't forget", "for future reference"
+4. **Be specific**: Store structured facts, not vague summaries
+
+### Example System Prompt Snippet
+
+```
+You have access to Orunla memory tools. Use them proactively:
+
+- At the start of each conversation, use memory_search to recall relevant context
+- When the user shares important facts, preferences, or decisions, use memory_add to save them
+- When the user says "remember", "don't forget", or "for future reference", always save to memory
+- Structure memories as subject-predicate-object triplets (e.g., "ProjectX" - "uses" - "React 18")
+- Be specific and include context about why decisions were made
+```
+
+---
+
 ## Licensing & Sync
 
 The MCP server respects your current license tier:
@@ -151,7 +419,8 @@ The MCP server respects your current license tier:
 
 On startup, the MCP server logs your license status to stderr:
 ```
-[orunla] License: pro | Sync: enabled | Device: DESKTOP-ABC
+[orunla] License: pro | Sync: enabled
+[orunla] Background sync started (30s interval)
 ```
 
 To activate Pro, use the CLI:

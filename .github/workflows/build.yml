@@ -161,10 +161,10 @@ jobs:
           cp README-MAC.md "${DIST}/README.md"
           cp docs/CLI.md "${DIST}/documentation/" 2>/dev/null || true
           cp docs/MCP.md "${DIST}/documentation/" 2>/dev/null || true
-          cp API_REFERENCE.md "${DIST}/documentation/" 2>/dev/null || true
-          cp OVERVIEW.md "${DIST}/documentation/" 2>/dev/null || true
-          cp LICENSE "${DIST}/documentation/" 2>/dev/null || true
-          cp THIRD_PARTY_NOTICES.md "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/API_REFERENCE.md "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/OVERVIEW.md "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/LICENSE "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/THIRD_PARTY_NOTICES.md "${DIST}/documentation/" 2>/dev/null || true
 
           # Zip
           zip -r "${DIST}.zip" "${DIST}/"
@@ -195,7 +195,7 @@ jobs:
 
           # Documentation
           Copy-Item "README-WINDOWS.md" "$DIST\README.md"
-          $docs = @("docs\CLI.md", "docs\MCP.md", "API_REFERENCE.md", "OVERVIEW.md", "LICENSE", "THIRD_PARTY_NOTICES.md")
+          $docs = @("docs\CLI.md", "docs\MCP.md", "docs\API_REFERENCE.md", "docs\OVERVIEW.md", "docs\LICENSE", "docs\THIRD_PARTY_NOTICES.md")
           foreach ($doc in $docs) {
             if (Test-Path $doc) { Copy-Item $doc "$DIST\documentation\" }
           }
@@ -214,6 +214,6 @@ jobs:
           TAG="${{ github.ref_name }}"
           # workflow_dispatch may not have a tag, use a default
           if [ -z "$TAG" ] || [ "$TAG" = "" ]; then
-            TAG="v0.3.1"
+            TAG="v0.3.3"
           fi
           gh release upload "$TAG" "${{ matrix.dist_name }}.zip" --clobber

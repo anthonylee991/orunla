@@ -28,6 +28,7 @@ pub struct AddMemoryInput {
     pub subject: String,
     pub predicate: String,
     pub object: String,
+    #[serde(default)]
     pub text: String,
     #[serde(default)]
     pub memory_type: String,
