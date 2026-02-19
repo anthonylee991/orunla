@@ -227,7 +227,7 @@ Extracted triplets:
 
 ### 9. Cross-Device Sync (Pro)
 
-Orunla v0.3.3 introduces **cross-device sync** for Pro users. This keeps your knowledge graph synchronized across all your computers.
+Orunla v0.3.4 introduces **cross-device sync** for Pro users. This keeps your knowledge graph synchronized across all your computers.
 
 **How it works:**
 

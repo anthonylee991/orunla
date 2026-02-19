@@ -4,6 +4,8 @@ The Orunla background server provides a JSON REST API for integrating with AI ag
 
 **Default Base URL:** `http://localhost:3000`
 
+> **Want to connect Orunla to ChatGPT, Gemini, Claude, or another AI chatbot?** See `AI_SETUP.md` for step-by-step setup guides, OpenAPI specs, and copy-paste system prompts.
+
 ---
 
 ## Security & Authentication
@@ -12,13 +14,20 @@ The Orunla background server provides a JSON REST API for integrating with AI ag
 
 **IMPORTANT:** If you expose the API to the network (via ngrok, tunneling, or cloud deployment), you MUST use API key authentication to protect your data.
 
-```bash
-# Start server with API key authentication
-orunla_cli serve --port 3000 --api-key "your-secret-key-here"
+**Windows:**
+```powershell
+.\orunla_cli.exe serve --port 3000 --api-key "your-secret-key-here"
+```
 
-# Or use environment variable
+**macOS:**
+```bash
+./orunla_cli serve --port 3000 --api-key "your-secret-key-here"
+```
+
+Or use an environment variable instead of the flag:
+```bash
 export ORUNLA_API_KEY="your-secret-key-here"
-orunla_cli serve --port 3000
+./orunla_cli serve --port 3000
 ```
 
 ### Authentication Methods
@@ -75,7 +84,7 @@ If you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
 Verify if the server is running.
 - **Response:**
   ```json
-  { "status": "ok", "version": "0.3.3" }
+  { "status": "ok", "version": "0.3.4" }
   ```
 
 ### `GET /stats`

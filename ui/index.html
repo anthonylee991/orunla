@@ -228,6 +228,94 @@
             line-height: 1.5;
         }
 
+        .status-dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 0.5rem;
+            vertical-align: middle;
+        }
+
+        .status-dot.online {
+            background: var(--neon-green);
+            box-shadow: 0 0 8px var(--neon-green);
+        }
+
+        .status-dot.offline {
+            background: #ff3333;
+            box-shadow: 0 0 8px #ff3333;
+        }
+
+        .status-dot.connecting {
+            background: var(--cyber-yellow);
+            box-shadow: 0 0 8px var(--cyber-yellow);
+        }
+
+        .status-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .status-label.online { color: var(--neon-green); }
+        .status-label.offline { color: #ff3333; }
+        .status-label.connecting { color: var(--cyber-yellow); }
+
+        .url-row {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+        }
+
+        .url-value {
+            flex: 1;
+            background: rgba(0, 0, 0, 0.6);
+            border: 1px solid var(--neon-green);
+            padding: 0.5rem 0.75rem;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.75rem;
+            color: var(--neon-green);
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .copy-btn {
+            background: rgba(0, 255, 255, 0.1);
+            border: 1px solid var(--cyber-cyan);
+            color: var(--cyber-cyan);
+            padding: 0.5rem 0.75rem;
+            font-size: 0.75rem;
+            font-family: 'Share Tech Mono', monospace;
+            cursor: pointer;
+            white-space: nowrap;
+            letter-spacing: 0.05em;
+        }
+
+        .copy-btn:hover {
+            background: rgba(0, 255, 255, 0.2);
+            box-shadow: 0 0 10px rgba(0, 255, 255, 0.3);
+            transform: none;
+        }
+
+        .server-info-row {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0;
+        }
+
+        .server-info-label {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            min-width: 100px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
         .card {
             background: rgba(18, 18, 26, 0.7);
             padding: 2.5rem;
@@ -520,33 +608,47 @@
 
         <div class="main-grid">
             <div class="card">
-                <h2>Integration Modes</h2>
+                <h2>Server Status</h2>
                 <div class="servers-section">
                     <div class="server-card">
-                        <h3>MCP Server</h3>
-                        <div class="server-port">Transport: stdio (no port required)</div>
-                        <div class="server-note">
-                            Add to claude_desktop_config.json or IDE MCP settings:
+                        <h3>Unified Server</h3>
+                        <div class="server-info-row">
+                            <span id="server-dot" class="status-dot connecting"></span>
+                            <span id="server-status-label" class="status-label connecting">Checking...</span>
                         </div>
-                        <div class="server-status">
-                            <code>{
-  "mcpServers": {
-    "orunla": {
-      "command": "C:/path/to/orunla_mcp.exe",
-      "args": []
-    }
-  }
-}</code>
+                        <div class="server-info-row">
+                            <span class="server-info-label">MCP SSE</span>
+                        </div>
+                        <div class="url-row">
+                            <span id="local-mcp-url" class="url-value">http://localhost:8080/sse</span>
+                            <button class="copy-btn" onclick="copyUrl('local-mcp-url')">COPY</button>
+                        </div>
+                        <div class="server-info-row" style="margin-top: 0.5rem;">
+                            <span class="server-info-label">REST API</span>
+                        </div>
+                        <div class="url-row">
+                            <span id="local-api-url" class="url-value">http://localhost:8080</span>
+                            <button class="copy-btn" onclick="copyUrl('local-api-url')">COPY</button>
+                        </div>
+                        <div class="server-note">
+                            Both MCP (SSE) and REST API run on the same port. Starts automatically with the app.
                         </div>
                     </div>
                     <div class="server-card">
-                        <h3>REST API Server</h3>
-                        <div class="server-status">
-                            <code>cargo run --bin orunla_cli -- serve --port 3000</code>
+                        <h3>Cloud Relay</h3>
+                        <div class="server-info-row">
+                            <span id="relay-dot" class="status-dot connecting"></span>
+                            <span id="relay-status-label" class="status-label connecting">Connecting...</span>
                         </div>
-                        <div class="server-port">Port: 3000 (default) or 7432</div>
+                        <div class="server-info-row">
+                            <span class="server-info-label">Relay URL</span>
+                        </div>
+                        <div class="url-row">
+                            <span id="relay-url" class="url-value">Loading...</span>
+                            <button class="copy-btn" onclick="copyUrl('relay-url')">COPY</button>
+                        </div>
                         <div class="server-note">
-                            HTTP endpoints for n8n, Make.com, webhooks, and external integrations.
+                            Paste this URL into Claude browser's MCP connector. Works whenever this app is open — no tunnel required.
                         </div>
                     </div>
                 </div>

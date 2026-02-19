@@ -1,6 +1,6 @@
 [package]
 name = "orunla"
-version = "0.3.3"
+version = "0.3.4"
 edition = "2021"
 
 [dependencies]
@@ -27,6 +27,8 @@ regex = "1.10"
 futures = "0.3"
 tokio-stream = "0.1"
 async-channel = "2.3"
+tokio-tungstenite = { version = "0.24", features = ["native-tls"] }
+url = "2.5"
 
 [lib]
 name = "orunla"

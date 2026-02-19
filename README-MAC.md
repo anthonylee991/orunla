@@ -8,10 +8,9 @@
 ## What's Included
 
 ```
-Orunla_v0.3.0_bundle/
-└── macOS/
-    ├── orunla-mac-aarch64/    ← Apple Silicon (M1/M2/M3/M4)
-    └── orunla-mac-x86_64/     ← Intel Macs
+Orunla_macOS_v0.3.4/
+├── orunla-mac-aarch64/    ← Apple Silicon (M1/M2/M3/M4)
+└── orunla-mac-x86_64/     ← Intel Macs
 
 Each architecture folder contains:
 ├── orunla_cli            - CLI tool (ingest, recall, serve, licensing, sync)
@@ -26,6 +25,7 @@ Each architecture folder contains:
     ├── CLI.md            - CLI command reference
     ├── MCP.md            - MCP integration guide
     ├── API_REFERENCE.md  - REST API endpoints
+    ├── AI_SETUP.md       - Connect any AI chatbot (ChatGPT, Gemini, Claude browser)
     ├── OVERVIEW.md       - Architecture overview
     ├── LICENSE
     └── THIRD_PARTY_NOTICES.md
@@ -47,10 +47,10 @@ Open Terminal and navigate to the correct folder for your Mac:
 
 ```bash
 # Apple Silicon (M1/M2/M3/M4):
-cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64
+cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-aarch64
 
 # Intel Mac:
-cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-x86_64
+cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-x86_64
 ```
 
 Replace `/path/to/` with wherever you extracted the bundle (e.g., `~/Downloads/`).
@@ -78,11 +78,11 @@ To make this permanent, add it to your shell profile (adjust path for your setup
 
 ```bash
 # For zsh (default on macOS) — Apple Silicon example:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
 source ~/.zshrc
 
 # For bash:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
@@ -178,9 +178,9 @@ The MCP server gives AI assistants direct access to your memory graph.
    {
      "mcpServers": {
        "orunla": {
-         "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+         "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
          "env": {
-           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
          }
        }
      }
@@ -199,9 +199,9 @@ Add to `~/.claude/settings.json` or your project's `.claude/settings.json`:
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -286,7 +286,7 @@ This SQLite database contains:
 
 Run the quarantine removal from Step 2:
 ```bash
-cd /path/to/Orunla_v0.3.0_bundle/macOS/orunla-mac-aarch64
+cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-aarch64
 xattr -cr .
 chmod +x orunla_cli orunla_mcp launch_orunla.sh
 ```
@@ -332,9 +332,23 @@ rm ~/.orunla/memory.db
 
 ---
 
+### Option 5: Any AI Chatbot (ChatGPT, Gemini, Claude Web, etc.)
+
+Use the REST API to connect Orunla to any AI that supports custom actions, skills, or system prompts — including ChatGPT Custom GPTs, Google Gemini Gems, Claude Projects, and more.
+
+See `documentation/AI_SETUP.md` for:
+- Step-by-step ChatGPT Custom GPT setup (with OpenAPI spec for Actions)
+- Google Gemini Gem setup
+- Claude browser MCP connector setup (SSE mode + Cloudflare Tunnel)
+- Copy-paste system prompts that teach any AI to use Orunla automatically
+- A `CLAUDE.md` template for Claude Code users
+
+---
+
 ## Documentation
 
 - **CLI Reference:** `documentation/CLI.md`
 - **MCP Guide:** `documentation/MCP.md`
 - **REST API:** `documentation/API_REFERENCE.md`
+- **AI Chatbot Setup:** `documentation/AI_SETUP.md`
 - **Architecture:** `documentation/OVERVIEW.md`

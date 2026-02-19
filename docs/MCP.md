@@ -76,7 +76,7 @@ Or press `Cmd + Shift + .` in Finder to show hidden files.
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
       "args": []
     }
   }
@@ -89,9 +89,9 @@ Or press `Cmd + Shift + .` in Finder to show hidden files.
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -112,7 +112,7 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
       "args": []
     }
   }
@@ -125,9 +125,9 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -161,7 +161,7 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
     "orunla": {
       "type": "local",
       "command": [
-        "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe"
+        "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe"
       ],
       "enabled": true
     }
@@ -178,10 +178,10 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
     "orunla": {
       "type": "local",
       "command": [
-        "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/orunla_mcp"
+        "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp"
       ],
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.3/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
       },
       "enabled": true
     }
@@ -227,7 +227,7 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
 You can test the MCP server directly in PowerShell:
 
 ```powershell
-cd C:\Users\YourName\Orunla_Windows_v0.3.3
+cd C:\Users\YourName\Orunla_Windows_v0.3.4
 .\orunla_mcp.exe
 ```
 
@@ -256,9 +256,9 @@ If you encounter issues, you can try adding optional parameters:
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
       "args": [],
-      "cwd": "C:\\Users\\YourName\\Orunla_Windows_v0.3.3",
+      "cwd": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4",
       "env": {
         "USERPROFILE": "C:\\Users\\YourName",
         "HOME": "C:\\Users\\YourName"
@@ -332,6 +332,8 @@ You can talk to your agent naturally, and it will use these tools in the backgro
 ## Making Orunla Work Autonomously
 
 By default, AI agents won't use Orunla unless you explicitly ask them to. To make your agent **proactively** save and recall memories, add instructions to your system prompt or `CLAUDE.md` file.
+
+> **Not using MCP?** If you use ChatGPT, Gemini, or another AI that doesn't support MCP, see `AI_SETUP.md` for setup guides using the REST API, including OpenAPI specs for ChatGPT Actions and copy-paste system prompts for any platform.
 
 ### For Claude Code
 

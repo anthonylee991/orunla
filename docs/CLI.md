@@ -3,8 +3,8 @@
 The Orunla Command Line Interface (CLI) is the primary tool for administrators and advanced users to manage the memory system, perform maintenance, and run the background server.
 
 **Binary Name:**
-- Windows: `orunla_cli.exe` (in `Orunla_Windows_v0.3.3\`)
-- macOS: `orunla_cli` (in `Orunla_macOS_v0.3.3/orunla-mac-{arch}/`)
+- Windows: `orunla_cli.exe` (in `Orunla_Windows_v0.3.4\`)
+- macOS: `orunla_cli` (in `Orunla_macOS_v0.3.4/orunla-mac-{arch}/`)
 
 ---
 

@@ -15,6 +15,15 @@ const edgesCount = document.getElementById('edges-count');
 const memoryContainer = document.getElementById('memory-container');
 const statusMsg = document.getElementById('status-msg');
 
+// Server status elements
+const serverDot = document.getElementById('server-dot');
+const serverStatusLabel = document.getElementById('server-status-label');
+const relayDot = document.getElementById('relay-dot');
+const relayStatusLabel = document.getElementById('relay-status-label');
+const localMcpUrl = document.getElementById('local-mcp-url');
+const localApiUrl = document.getElementById('local-api-url');
+const relayUrlEl = document.getElementById('relay-url');
+
 async function updateStats() {
     try {
         const stats = await invoke('get_stats');
@@ -32,6 +41,72 @@ function showStatus(msg) {
         statusMsg.classList.remove('show');
     }, 3000);
 }
+
+// --- Server status ---
+
+function setStatus(dot, label, state, text) {
+    dot.className = 'status-dot ' + state;
+    label.className = 'status-label ' + state;
+    label.textContent = text;
+}
+
+async function checkServerStatus() {
+    try {
+        const resp = await fetch('http://localhost:8080/health', { signal: AbortSignal.timeout(2000) });
+        if (resp.ok) {
+            setStatus(serverDot, serverStatusLabel, 'online', 'Running');
+        } else {
+            setStatus(serverDot, serverStatusLabel, 'offline', 'Error');
+        }
+    } catch {
+        setStatus(serverDot, serverStatusLabel, 'offline', 'Offline');
+    }
+}
+
+async function loadServerInfo() {
+    try {
+        const info = await invoke('get_server_info');
+
+        localMcpUrl.textContent = info.local_mcp_url;
+        localApiUrl.textContent = info.local_api_url;
+
+        if (info.relay_url) {
+            relayUrlEl.textContent = info.relay_url;
+            setStatus(relayDot, relayStatusLabel, 'online', 'Available');
+        } else {
+            relayUrlEl.textContent = 'No device ID — run any command first';
+            setStatus(relayDot, relayStatusLabel, 'offline', 'No device ID');
+        }
+    } catch (e) {
+        console.error("Failed to load server info:", e);
+        relayUrlEl.textContent = 'Failed to load';
+        setStatus(relayDot, relayStatusLabel, 'offline', 'Error');
+    }
+}
+
+function copyUrl(elementId) {
+    const el = document.getElementById(elementId);
+    const text = el.textContent;
+    if (!text || text === 'Loading...' || text.startsWith('No ') || text.startsWith('Failed')) return;
+
+    navigator.clipboard.writeText(text).then(() => {
+        showStatus('Copied to clipboard');
+    }).catch(() => {
+        // Fallback for older browsers
+        const textarea = document.createElement('textarea');
+        textarea.value = text;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        showStatus('Copied to clipboard');
+    });
+}
+
+// Make copyUrl available globally (used by onclick in HTML)
+window.copyUrl = copyUrl;
+
+// --- Event listeners ---
 
 ingestBtn.addEventListener('click', async () => {
     const text = ingestInput.value.trim();
@@ -149,6 +224,13 @@ if (purgeBtn) {
     });
 }
 
-// Initial stats fetch
+// --- Initialization ---
+
 updateStats();
 setInterval(updateStats, 5000);
+
+// Load server info once, then poll server health every 5s
+loadServerInfo();
+// Give the server a moment to start before first health check
+setTimeout(checkServerStatus, 2000);
+setInterval(checkServerStatus, 5000);

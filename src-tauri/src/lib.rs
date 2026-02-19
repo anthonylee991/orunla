@@ -1,6 +1,8 @@
 use orunla::extractor::gliner::GlinerExtractor;
 use orunla::graph::{Edge, GraphStore, Node, NodeType};
 use orunla::licensing::{LicenseStore, LicenseValidator, Tier};
+use orunla::mcp::MCPServer;
+use orunla::relay_client::McpRelayClient;
 use orunla::retriever::{search::HybridRetriever, RecallRequest, Retriever};
 use orunla::storage::{sqlite::SqliteStorage, Storage, StorageConfig};
 use orunla::sync::changelog::ChangelogStore;
@@ -282,6 +284,37 @@ async fn get_license_status(state: State<'_, AppState>) -> Result<LicenseStatus,
     })
 }
 
+#[derive(Serialize)]
+pub struct ServerInfo {
+    pub server_port: u16,
+    pub local_mcp_url: String,
+    pub local_api_url: String,
+    pub relay_url: Option<String>,
+    pub device_id: Option<String>,
+}
+
+#[tauri::command]
+async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, String> {
+    let storage = state.storage.lock().await;
+    let device_id = storage.get_device_id().ok().filter(|id| !id.is_empty());
+
+    let port = 8080u16;
+    let relay_url = device_id.as_ref().map(|id| {
+        format!(
+            "https://orunla-production.up.railway.app/mcp/{}/sse",
+            id
+        )
+    });
+
+    Ok(ServerInfo {
+        server_port: port,
+        local_mcp_url: format!("http://localhost:{}/sse", port),
+        local_api_url: format!("http://localhost:{}", port),
+        relay_url,
+        device_id,
+    })
+}
+
 #[cfg(windows)]
 fn fix_dll_path() {
     if let Ok(exe_path) = std::env::current_exe() {
@@ -395,6 +428,63 @@ pub fn run() {
                 });
             }
 
+            // Start unified server (REST API + MCP SSE) in background
+            let server_config = config.clone();
+            let relay_config = config.clone();
+            tauri::async_runtime::spawn(async move {
+                let mcp_storage = SqliteStorage::new(server_config.clone());
+                if mcp_storage.init().is_err() {
+                    eprintln!("[orunla] Failed to init MCP storage for unified server");
+                    return;
+                }
+                let mcp_server = MCPServer::new(mcp_storage);
+
+                let api_storage = SqliteStorage::new(server_config.clone());
+                if api_storage.init().is_err() {
+                    eprintln!("[orunla] Failed to init API storage for unified server");
+                    return;
+                }
+
+                let port = 8080u16;
+                eprintln!("[orunla] Starting unified server on port {}...", port);
+                if let Err(e) = orunla::unified_server::start_unified_server(
+                    api_storage,
+                    mcp_server,
+                    port,
+                    None, // No API key for local desktop use
+                ).await {
+                    eprintln!("[orunla] Unified server error: {}", e);
+                }
+            });
+
+            // Connect to cloud MCP relay for Claude browser access
+            tauri::async_runtime::spawn(async move {
+                let relay_storage = SqliteStorage::new(relay_config.clone());
+                if relay_storage.init().is_err() {
+                    eprintln!("[orunla] Failed to init relay storage");
+                    return;
+                }
+
+                let device_id = match relay_storage.get_device_id() {
+                    Ok(id) if !id.is_empty() => id,
+                    _ => {
+                        eprintln!("[orunla] No device_id found, skipping MCP relay");
+                        return;
+                    }
+                };
+
+                let relay_mcp_storage = SqliteStorage::new(relay_config);
+                if relay_mcp_storage.init().is_err() {
+                    eprintln!("[orunla] Failed to init relay MCP storage");
+                    return;
+                }
+                let mcp_server = MCPServer::new(relay_mcp_storage);
+
+                let client = McpRelayClient::new(device_id, mcp_server);
+                eprintln!("[orunla] MCP relay URL: {}", client.relay_sse_url());
+                client.connect_loop().await;
+            });
+
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())
@@ -406,7 +496,8 @@ pub fn run() {
             delete_memory,
             purge_topic,
             activate_license,
-            get_license_status
+            get_license_status,
+            get_server_info
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

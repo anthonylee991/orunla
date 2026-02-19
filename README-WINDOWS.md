@@ -8,23 +8,23 @@
 ## What's Included
 
 ```
-Orunla_v0.3.0_bundle/
-└── windows/
-    ├── Orunla.exe            - Desktop Application
-    ├── orunla_cli.exe        - CLI tool (ingest, recall, serve, licensing, sync)
-    ├── orunla_mcp.exe        - MCP Server (for Claude/Cursor/Cline)
-    ├── onnxruntime.dll       - ONNX Runtime (required for GliNER NER engine)
-    ├── README.md             - This file
-    └── documentation/
-        ├── CLI.md            - CLI command reference
-        ├── MCP.md            - MCP integration guide
-        ├── API_REFERENCE.md  - REST API endpoints
-        ├── OVERVIEW.md       - Architecture overview
-        ├── LICENSE
-        └── THIRD_PARTY_NOTICES.md
+Orunla_Windows_v0.3.4/
+├── Orunla.exe            - Desktop Application
+├── orunla_cli.exe        - CLI tool (ingest, recall, serve, licensing, sync)
+├── orunla_mcp.exe        - MCP Server (for Claude/Cursor/Cline)
+├── onnxruntime.dll       - ONNX Runtime (required for GliNER NER engine)
+├── README.md             - This file
+└── documentation/
+    ├── CLI.md            - CLI command reference
+    ├── MCP.md            - MCP integration guide
+    ├── API_REFERENCE.md  - REST API endpoints
+    ├── AI_SETUP.md       - Connect any AI chatbot (ChatGPT, Gemini, Claude browser)
+    ├── OVERVIEW.md       - Architecture overview
+    ├── LICENSE
+    └── THIRD_PARTY_NOTICES.md
 ```
 
-**Important:** Keep all files in the `windows` folder together. The executables need `onnxruntime.dll` to be in the same directory.
+**Important:** Keep all files in the `Orunla_Windows_v0.3.4` folder together. The executables need `onnxruntime.dll` to be in the same directory.
 
 ---
 
@@ -32,7 +32,7 @@ Orunla_v0.3.0_bundle/
 
 ### Option 1: Desktop Application (Recommended)
 
-1. Open the `windows` folder inside `Orunla_v0.3.0_bundle`
+1. Open the `Orunla_Windows_v0.3.4` folder
 2. Double-click **`Orunla.exe`** to launch the desktop app
 3. The app includes:
    - Memory ingestion (text + file upload)
@@ -48,7 +48,7 @@ Orunla_v0.3.0_bundle/
 Open PowerShell and navigate to the Windows folder:
 
 ```powershell
-cd C:\path\to\Orunla_v0.3.0_bundle\windows
+cd C:\path\to\Orunla_Windows_v0.3.4
 ```
 
 Replace `C:\path\to\` with wherever you extracted the bundle (e.g., `C:\Users\YourName\Downloads\`).
@@ -91,7 +91,7 @@ On first run, the GliNER model (~40MB) will download automatically.
 Start the server for webhooks, n8n, Make.com, or custom integrations:
 
 ```powershell
-cd C:\path\to\Orunla_v0.3.0_bundle\windows
+cd C:\path\to\Orunla_Windows_v0.3.4
 .\orunla_cli.exe serve --port 3000
 ```
 
@@ -119,7 +119,7 @@ Edit `%APPDATA%\Claude\claude_desktop_config.json`:
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
+      "command": "C:/Users/YourName/Orunla_Windows_v0.3.4/orunla_mcp.exe"
     }
   }
 }
@@ -137,7 +137,7 @@ Edit `%USERPROFILE%\.claude\settings.json`:
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:/Users/YourName/Orunla_v0.3.0_bundle/windows/orunla_mcp.exe"
+      "command": "C:/Users/YourName/Orunla_Windows_v0.3.4/orunla_mcp.exe"
     }
   }
 }
@@ -224,7 +224,7 @@ This SQLite database contains:
 
 ### MCP not connecting
 - Use **forward slashes** in the path (`C:/Users/...` not `C:\Users\...`)
-- Use the full path including `Orunla_v0.3.0_bundle/windows/orunla_mcp.exe`
+- Use the full path including `Orunla_Windows_v0.3.4/orunla_mcp.exe`
 - Restart Claude Desktop / Cursor completely (quit and reopen)
 - Check logs in your AI assistant for error messages
 
@@ -247,9 +247,23 @@ Remove-Item "$env:USERPROFILE\.orunla\memory.db"
 
 ---
 
+### Option 5: Any AI Chatbot (ChatGPT, Gemini, Claude Web, etc.)
+
+Use the REST API to connect Orunla to any AI that supports custom actions, skills, or system prompts — including ChatGPT Custom GPTs, Google Gemini Gems, Claude Projects, and more.
+
+See `documentation\AI_SETUP.md` for:
+- Step-by-step ChatGPT Custom GPT setup (with OpenAPI spec for Actions)
+- Google Gemini Gem setup
+- Claude browser MCP connector setup (SSE mode + Cloudflare Tunnel)
+- Copy-paste system prompts that teach any AI to use Orunla automatically
+- A `CLAUDE.md` template for Claude Code users
+
+---
+
 ## Documentation
 
 - **CLI Reference:** `documentation\CLI.md`
 - **MCP Guide:** `documentation\MCP.md`
 - **REST API:** `documentation\API_REFERENCE.md`
+- **AI Chatbot Setup:** `documentation\AI_SETUP.md`
 - **Architecture:** `documentation\OVERVIEW.md`

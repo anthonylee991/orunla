@@ -34,7 +34,7 @@ pub struct RateLimiter {
 }
 
 impl RateLimiter {
-    fn new(max_requests_per_minute: u32) -> Self {
+    pub fn new(max_requests_per_minute: u32) -> Self {
         let max_tokens = max_requests_per_minute as f64;
         let refill_rate = max_tokens / 60.0; // Convert to per-second
 
@@ -193,11 +193,11 @@ pub async fn start_server(storage: SqliteStorage, port: u16, api_key: Option<Str
     Ok(())
 }
 
-async fn health_check() -> Json<Value> {
-    Json(json!({ "status": "ok", "version": "0.3.1" }))
+pub async fn health_check() -> Json<Value> {
+    Json(json!({ "status": "ok", "version": "0.3.4" }))
 }
 
-async fn get_stats(State(state): State<Arc<ServerState>>) -> Json<Value> {
+pub async fn get_stats(State(state): State<Arc<ServerState>>) -> Json<Value> {
     let storage = state.storage.lock().await;
     let stats = storage.stats().unwrap_or(StorageStats {
         node_count: 0,
@@ -218,12 +218,12 @@ const MAX_QUERY_LENGTH: usize = 10_000; // 10KB
 const MAX_FILE_SIZE: usize = 50_000_000; // 50MB
 
 #[derive(Deserialize)]
-struct IngestPayload {
+pub(crate) struct IngestPayload {
     text: String,
     source_id: Option<String>,
 }
 
-async fn ingest_handler(
+pub async fn ingest_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<IngestPayload>,
 ) -> Json<Value> {
@@ -285,7 +285,7 @@ async fn ingest_handler(
     Json(json!({ "status": "ok", "added_triplets": added_count }))
 }
 
-async fn ingest_file_handler(
+pub async fn ingest_file_handler(
     State(state): State<Arc<ServerState>>,
     mut multipart: Multipart,
 ) -> Json<Value> {
@@ -409,13 +409,13 @@ async fn ingest_file_handler(
 }
 
 #[derive(Deserialize)]
-struct RecallPayload {
+pub(crate) struct RecallPayload {
     query: String,
     limit: Option<usize>,
     min_strength: Option<f32>,
 }
 
-async fn recall_handler(
+pub async fn recall_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<RecallPayload>,
 ) -> Json<Value> {
@@ -469,7 +469,7 @@ async fn recall_handler(
     Json(json!({ "memories": memories }))
 }
 
-async fn delete_memory_handler(
+pub async fn delete_memory_handler(
     State(state): State<Arc<ServerState>>,
     Path(id): Path<String>,
 ) -> Json<Value> {
@@ -487,11 +487,11 @@ async fn delete_memory_handler(
 }
 
 #[derive(Deserialize)]
-struct PurgePayload {
+pub(crate) struct PurgePayload {
     query: String,
 }
 
-async fn purge_topic_handler(
+pub async fn purge_topic_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<PurgePayload>,
 ) -> Json<Value> {
@@ -518,4 +518,38 @@ async fn purge_topic_handler(
             Json(json!({ "status": "error", "message": "Failed to purge memories" }))
         }
     }
+}
+
+/// Build REST API routes as a Router with `Arc<ServerState>`.
+/// Used by both the standalone REST server and the unified server.
+pub fn build_rest_routes(state: Arc<ServerState>) -> Router {
+    // Protected routes (require auth if API key is set + rate limiting)
+    let protected_routes = Router::new()
+        .route("/ingest", post(ingest_handler))
+        .route("/ingest-file", post(ingest_file_handler))
+        .route("/recall", post(recall_handler))
+        .route("/memories/:id", delete(delete_memory_handler))
+        .route("/memories/purge", post(purge_topic_handler))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            auth_middleware,
+        ))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            rate_limit_middleware,
+        ));
+
+    // Public routes (no auth required, but still rate limited)
+    let public_routes = Router::new()
+        .route("/health", get(health_check))
+        .route("/stats", get(get_stats))
+        .route_layer(middleware::from_fn_with_state(
+            state.clone(),
+            rate_limit_middleware,
+        ));
+
+    Router::new()
+        .merge(protected_routes)
+        .merge(public_routes)
+        .with_state(state)
 }

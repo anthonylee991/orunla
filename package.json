@@ -1,6 +1,6 @@
 {
     "name": "orunla",
-    "version": "0.3.3",
+    "version": "0.3.4",
     "description": "Orunla Memory System",
     "main": "index.js",
     "scripts": {
