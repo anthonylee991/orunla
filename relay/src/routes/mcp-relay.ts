@@ -67,7 +67,10 @@ mcpRelayRoutes.get('/:deviceId/sse', async (c) => {
     deviceSessions.get(deviceId)!.set(sessionId, writer);
 
     // Send the endpoint event (tells Claude where to POST messages)
-    const endpointUrl = `/${deviceId}/message?session_id=${sessionId}`;
+    // Must include /mcp prefix since routes are mounted at app.route('/mcp', ...)
+    // Use the request's origin to build an absolute URL (Claude's connector may not resolve relative URLs)
+    const requestUrl = new URL(c.req.url);
+    const endpointUrl = `${requestUrl.origin}/mcp/${deviceId}/message?session_id=${sessionId}`;
     await stream.writeSSE({ event: 'endpoint', data: endpointUrl });
 
     // Keep alive with periodic pings
