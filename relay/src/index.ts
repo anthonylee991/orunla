@@ -70,12 +70,18 @@ server.on('upgrade', (request, socket, head) => {
       });
 
       ws.on('close', () => {
-        handleDeviceDisconnect(deviceId);
+        // Only disconnect if this socket is still the active one for this device.
+        // Prevents a replaced (old) connection's close handler from removing the new one.
+        if (deviceSockets.get(deviceId) === ws) {
+          handleDeviceDisconnect(deviceId);
+        }
       });
 
       ws.on('error', (err) => {
         console.error(`[mcp-relay] WebSocket error for ${deviceId}:`, err.message);
-        handleDeviceDisconnect(deviceId);
+        if (deviceSockets.get(deviceId) === ws) {
+          handleDeviceDisconnect(deviceId);
+        }
       });
 
       // Send a welcome message so the client knows it's connected

@@ -5,6 +5,8 @@
 
 use anyhow::Result;
 use futures::{SinkExt, StreamExt};
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 
 use crate::mcp::MCPServer;
@@ -70,12 +72,18 @@ impl McpRelayClient {
         let (ws_stream, _response) = connect_async(&url).await?;
         eprintln!("[mcp-relay] Connected to relay");
 
-        let (mut write, mut read) = ws_stream.split();
+        let (write, mut read) = ws_stream.split();
+        let write = Arc::new(Mutex::new(write));
 
-        // Heartbeat task — sends pings to keep connection alive
-        let heartbeat_handle = tokio::spawn(async {
+        // Heartbeat task — sends WebSocket pings to keep connection alive
+        let heartbeat_write = write.clone();
+        let heartbeat_handle = tokio::spawn(async move {
             loop {
                 tokio::time::sleep(std::time::Duration::from_secs(30)).await;
+                let mut w = heartbeat_write.lock().await;
+                if w.send(Message::Ping(vec![])).await.is_err() {
+                    break;
+                }
             }
         });
 
@@ -101,11 +109,12 @@ impl McpRelayClient {
                     };
 
                     // Process with MCP server
+                    let mut w = write.lock().await;
                     match self.mcp_server.handle_message(&mcp_msg).await {
                         Ok(Some(response)) => {
                             let response_str =
                                 serde_json::to_string(&response).unwrap_or_default();
-                            if let Err(e) = write.send(Message::Text(response_str)).await {
+                            if let Err(e) = w.send(Message::Text(response_str)).await {
                                 eprintln!("[mcp-relay] Failed to send response: {}", e);
                                 break;
                             }
@@ -129,14 +138,15 @@ impl McpRelayClient {
                                     serde_json::to_string(&error_response)
                                 {
                                     let _ =
-                                        write.send(Message::Text(response_str)).await;
+                                        w.send(Message::Text(response_str)).await;
                                 }
                             }
                         }
                     }
                 }
                 Ok(Message::Ping(data)) => {
-                    let _ = write.send(Message::Pong(data)).await;
+                    let mut w = write.lock().await;
+                    let _ = w.send(Message::Pong(data)).await;
                 }
                 Ok(Message::Close(_)) => {
                     eprintln!("[mcp-relay] Server closed connection");
