@@ -68,9 +68,11 @@ mcpRelayRoutes.get('/:deviceId/sse', async (c) => {
 
     // Send the endpoint event (tells Claude where to POST messages)
     // Must include /mcp prefix since routes are mounted at app.route('/mcp', ...)
-    // Use the request's origin to build an absolute URL (Claude's connector may not resolve relative URLs)
-    const requestUrl = new URL(c.req.url);
-    const endpointUrl = `${requestUrl.origin}/mcp/${deviceId}/message?session_id=${sessionId}`;
+    // Use forwarded headers to get the public URL (behind Railway's reverse proxy,
+    // c.req.url gives the internal localhost address, not the public domain)
+    const proto = c.req.header('x-forwarded-proto') || 'https';
+    const host = c.req.header('x-forwarded-host') || c.req.header('host') || 'localhost';
+    const endpointUrl = `${proto}://${host}/mcp/${deviceId}/message?session_id=${sessionId}`;
     await stream.writeSSE({ event: 'endpoint', data: endpointUrl });
 
     // Keep alive with periodic pings
