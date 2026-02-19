@@ -10,6 +10,7 @@ import {
   handleDeviceMessage,
   handleDeviceDisconnect,
 } from './routes/mcp-relay.js';
+import { apiRelayRoutes, handleApiResponse } from './routes/api-relay.js';
 import { schedulePrune } from './jobs/prune.js';
 
 const app = new Hono();
@@ -28,6 +29,9 @@ app.route('/orunla', syncRoutes);
 
 // MCP relay (SSE + message proxy — free for all users)
 app.route('/mcp', mcpRelayRoutes);
+
+// REST API relay (proxies HTTP requests to desktop via WebSocket — free for all)
+app.route('/api', apiRelayRoutes);
 
 // Start pruning job
 schedulePrune();
@@ -66,7 +70,17 @@ server.on('upgrade', (request, socket, head) => {
       deviceSockets.set(deviceId, ws);
 
       ws.on('message', (data) => {
-        handleDeviceMessage(deviceId, data.toString());
+        const raw = data.toString();
+        // Check for API relay responses before MCP handling
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed.type === 'api_response' && parsed.id) {
+            if (handleApiResponse(parsed)) return;
+          }
+        } catch {
+          // Not JSON or parse error — fall through to MCP handler
+        }
+        handleDeviceMessage(deviceId, raw);
       });
 
       ws.on('close', () => {
