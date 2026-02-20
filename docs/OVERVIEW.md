@@ -227,7 +227,7 @@ Extracted triplets:
 
 ### 9. Cross-Device Sync (Pro)
 
-Orunla v0.3.4 introduces **cross-device sync** for Pro users. This keeps your knowledge graph synchronized across all your computers.
+Orunla v0.3.0 introduces **cross-device sync** for Pro users. This keeps your knowledge graph synchronized across all your computers.
 
 **How it works:**
 
@@ -269,6 +269,56 @@ Device A (home)                    Relay Server                    Device B (wor
 - Access counts and last-accessed timestamps (these are local recall stats)
 - Garbage collection (each device manages its own decay)
 
+### 10. Unified Server & Cloud Relay (v0.4.0)
+
+Orunla v0.4.0 introduces a **unified server** and **cloud MCP relay** that dramatically simplify setup for AI browser integrations.
+
+**Unified Server:**
+
+The desktop app now embeds a single Axum server on port 8080 that serves both the REST API and MCP SSE transport simultaneously. No need to start separate servers — just open the app.
+
+Available endpoints on `http://localhost:8080`:
+- `GET /sse` — MCP SSE endpoint (for local MCP clients)
+- `POST /message` — MCP message handler
+- `POST /ingest` — REST API: ingest text
+- `POST /recall` — REST API: search memories
+- `GET /health` — REST API: health check
+- `GET /stats` — REST API: database stats
+- Plus all other REST API endpoints
+
+**Cloud Relay (MCP + REST API):**
+
+The desktop app connects outbound via WebSocket to a cloud relay server. This allows remote clients to access your local Orunla instance without Cloudflare Tunnel, ngrok, or port forwarding.
+
+The cloud relay proxies **two types of traffic**:
+- **MCP SSE** — for AI chatbots using the MCP protocol (e.g., Claude browser, Cursor remote)
+- **REST API** — for ChatGPT Custom GPTs, n8n, Make.com, and any HTTP client
+
+How it works:
+1. Desktop app opens a WebSocket connection to the relay server
+2. Remote clients connect to a stable relay URL (MCP SSE at `/mcp/{device_id}/sse`, REST API at `/api/{device_id}/...`)
+3. The relay forwards messages between the remote client and your desktop
+4. Your desktop processes the request locally and sends the response back
+
+The relay is **free for all users** (no Pro license required) and the relay URL is **stable** — configure it once and it works whenever the desktop app is open.
+
+**Limitations:**
+- File uploads (`/ingest-file`) are **local-only** — multipart data cannot be serialized through the WebSocket relay. Use `http://localhost:8080/ingest-file` directly.
+- API key protection is available via the desktop app settings. Auth headers are forwarded through the relay to the desktop for validation.
+
+**Architecture:**
+```
+Claude Browser / GPT / n8n        Cloud Relay                    Desktop App
+     |                               |                              |
+     |--- MCP SSE or REST req ----->|                              |
+     |                               |<--- WebSocket connect -------|
+     |                               |--- WS: forward request ----->|
+     |                               |<--- WS: response ------------|
+     |<-- SSE event or JSON resp ---|                              |
+```
+
+**Privacy:** The relay server only forwards protocol messages. It does not store, read, or have access to your memory data.
+
 ## Licensing
 
 Orunla uses a **Free / Pro** model:
@@ -293,16 +343,21 @@ Orunla uses a **Free / Pro** model:
 
 ### 1. Desktop App (Windows)
 
-**What it is:** A graphical application with cyberpunk UI
+**What it is:** A graphical application with cyberpunk UI that auto-starts the unified server and cloud relay
 **How to use:**
-1. Double-click `Orunla.exe`
-2. Type facts in the Ingest box -> click "Ingest"
-3. Upload files via "Upload File" button
-4. Search memories in the Recall tab
-5. Purge topics you no longer need
-6. Activate your Pro license in the settings panel
+1. Double-click `Orunla.exe` — everything starts automatically
+2. The app provides:
+   - Memory ingestion (text + file upload)
+   - Memory recall/search
+   - Context purging
+   - Real-time stats
+   - Server status indicators (unified server + cloud relay)
+   - Copyable relay URL for Claude browser
+   - License activation and status
+3. REST API available at `http://localhost:8080` while the app is running
+4. Cloud relay URL shown in the Server Status card — paste into Claude browser
 
-**Best for:** Personal use, quick access, visual interface
+**Best for:** Personal use, quick access, Claude browser integration
 
 ### 2. MCP Server (Model Context Protocol)
 
@@ -592,7 +647,7 @@ Let me create an endpoint following these patterns..."
 ```
 +-------------------------------------------------------------+
 |                     Input Layer                               |
-|  (Desktop UI, CLI, MCP Server, REST API)                      |
+|  (Desktop UI, CLI, MCP Server, REST API, Cloud Relay)          |
 +----------------------------+--------------------------------+
                              |
                              v

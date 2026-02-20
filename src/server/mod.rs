@@ -194,7 +194,7 @@ pub async fn start_server(storage: SqliteStorage, port: u16, api_key: Option<Str
 }
 
 pub async fn health_check() -> Json<Value> {
-    Json(json!({ "status": "ok", "version": "0.3.4" }))
+    Json(json!({ "status": "ok", "version": "0.4.1" }))
 }
 
 pub async fn get_stats(State(state): State<Arc<ServerState>>) -> Json<Value> {

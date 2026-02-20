@@ -167,7 +167,7 @@ impl MCPServer {
                 },
                 "serverInfo": {
                     "name": "orunla-memory",
-                    "version": "0.3.4"
+                    "version": "0.4.1"
                 }
             }
         }))

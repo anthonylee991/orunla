@@ -8,23 +8,20 @@
 ## What's Included
 
 ```
-Orunla_Windows_v0.3.4/
-├── Orunla.exe            - Desktop Application
+Orunla_Windows_v0.4.1/
+├── Orunla.exe            - Desktop Application (auto-starts MCP + REST server)
 ├── orunla_cli.exe        - CLI tool (ingest, recall, serve, licensing, sync)
-├── orunla_mcp.exe        - MCP Server (for Claude/Cursor/Cline)
+├── orunla_mcp.exe        - Standalone MCP Server (for Claude Code/Cursor/Cline)
 ├── onnxruntime.dll       - ONNX Runtime (required for GliNER NER engine)
 ├── README.md             - This file
 └── documentation/
     ├── CLI.md            - CLI command reference
     ├── MCP.md            - MCP integration guide
     ├── API_REFERENCE.md  - REST API endpoints
-    ├── AI_SETUP.md       - Connect any AI chatbot (ChatGPT, Gemini, Claude browser)
     ├── OVERVIEW.md       - Architecture overview
-    ├── LICENSE
-    └── THIRD_PARTY_NOTICES.md
 ```
 
-**Important:** Keep all files in the `Orunla_Windows_v0.3.4` folder together. The executables need `onnxruntime.dll` to be in the same directory.
+**Important:** Keep all files in the `Orunla_Windows_v0.4.1` folder together. The executables need `onnxruntime.dll` to be in the same directory.
 
 ---
 
@@ -32,23 +29,87 @@ Orunla_Windows_v0.3.4/
 
 ### Option 1: Desktop Application (Recommended)
 
-1. Open the `Orunla_Windows_v0.3.4` folder
-2. Double-click **`Orunla.exe`** to launch the desktop app
-3. The app includes:
-   - Memory ingestion (text + file upload)
-   - Memory recall/search
-   - Context purging
-   - Real-time stats
+1. Open the `Orunla_Windows_v0.4.1` folder
+2. Double-click **`Orunla.exe`**
+3. That's it — everything starts automatically:
+   - **Unified server** on port 8080 (REST API + MCP SSE)
+   - **Cloud relay** connection for Claude browser access
+   - Desktop UI for ingestion, recall, purging, and stats
    - License activation and status
+
+**What's running in the background:**
+- `http://localhost:8080/health` — REST API health check
+- `http://localhost:8080/sse` — MCP SSE endpoint (for local MCP clients)
+- Cloud relay URL — shown in the app's Server Status card (for Claude browser)
+
+Just open the app and everything works. Close the app and the servers stop.
 
 ---
 
-### Option 2: CLI (Terminal)
+### Option 2: Claude Browser (via Cloud Relay)
+
+With the desktop app open, Claude browser can connect to your memory **without any tunnels or port forwarding**.
+
+1. Open **Orunla.exe**
+2. Copy the **Relay URL** from the Server Status card in the app
+3. In Claude browser, go to **Settings → MCP Connectors → Add**
+4. Paste the relay URL
+5. Claude can now read and write your memories
+
+The relay URL is stable — configure it once and it works whenever the desktop app is open.
+
+---
+
+### Option 3: MCP Integration (Claude Code / Cursor / Cline)
+
+The standalone MCP server (`orunla_mcp.exe`) gives AI coding assistants direct access to your memory graph via stdio. This works **independently of the desktop app** — you don't need the app open.
+
+**Important:** All paths in MCP configs must use forward slashes (`/`), not backslashes.
+
+#### Claude Desktop
+
+Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "orunla": {
+      "command": "C:/Users/YourName/Orunla_Windows_v0.4.1/orunla_mcp.exe"
+    }
+  }
+}
+```
+
+Replace `C:/Users/YourName/` with the actual path to your bundle folder.
+
+Restart Claude Desktop.
+
+#### Claude Code
+
+Edit `%USERPROFILE%\.claude\settings.json`:
+
+```json
+{
+  "mcpServers": {
+    "orunla": {
+      "command": "C:/Users/YourName/Orunla_Windows_v0.4.1/orunla_mcp.exe"
+    }
+  }
+}
+```
+
+#### Cursor / Cline / Windsurf
+
+Add the same configuration to your IDE's MCP settings. The command is identical.
+
+---
+
+### Option 4: CLI (Terminal)
 
 Open PowerShell and navigate to the Windows folder:
 
 ```powershell
-cd C:\path\to\Orunla_Windows_v0.3.4
+cd C:\path\to\Orunla_Windows_v0.4.1
 ```
 
 Replace `C:\path\to\` with wherever you extracted the bundle (e.g., `C:\Users\YourName\Downloads\`).
@@ -86,12 +147,12 @@ On first run, the GliNER model (~40MB) will download automatically.
 
 ---
 
-### Option 3: REST API Server
+### Option 5: REST API Server (Standalone)
 
-Start the server for webhooks, n8n, Make.com, or custom integrations:
+If you want to run the REST API on a headless server or without the desktop app:
 
 ```powershell
-cd C:\path\to\Orunla_Windows_v0.3.4
+cd C:\path\to\Orunla_Windows_v0.4.1
 .\orunla_cli.exe serve --port 3000
 ```
 
@@ -101,51 +162,34 @@ To secure the API when exposing to a network:
 .\orunla_cli.exe serve --port 3000 --api-key "your-secret-key"
 ```
 
+**Note:** When the desktop app is running, the REST API is already available on port 8080 — you don't need to start a separate server.
+
 See `documentation\API_REFERENCE.md` for all endpoints.
 
----
+#### API Key (v0.4.0)
 
-### Option 4: MCP Integration (Claude Desktop / Cursor / Cline)
+The desktop app includes an **API Key** settings panel. When set, all REST API requests (both local port 8080 and cloud relay) require the key via one of:
 
-The MCP server gives AI assistants direct access to your memory graph.
+- `X-API-Key: your-key` header
+- `Authorization: Bearer your-key` header
 
-**Important:** All paths in MCP configs must use forward slashes (`/`), not backslashes.
+**MCP is not affected** — the API key only applies to REST API endpoints. Stdio MCP and SSE MCP connections are not gated by the API key.
 
-#### Claude Desktop
+To set the API key:
+1. Open the desktop app and use the API Key settings panel, **or**
+2. Manually edit `%USERPROFILE%\.orunla\config.json` and add `"api_key": "your-key"`
 
-Edit `%APPDATA%\Claude\claude_desktop_config.json`:
+Requires an app restart to take effect.
 
-```json
-{
-  "mcpServers": {
-    "orunla": {
-      "command": "C:/Users/YourName/Orunla_Windows_v0.3.4/orunla_mcp.exe"
-    }
-  }
-}
-```
+#### Cloud REST API Relay (v0.4.0)
 
-Replace `C:/Users/YourName/` with the actual path to your bundle folder.
+The desktop app provides a **cloud REST API relay URL**, shown in the "Remote Access" card. External services (ChatGPT Custom GPTs, n8n, Make.com) can use this URL to access your Orunla REST API without setting up tunnels or port forwarding.
 
-Restart Claude Desktop.
+- The relay URL works whenever the desktop app is open
+- If an API key is set, remote requests must include it
+- **File upload** (`/ingest-file`) is not supported via the relay — use the local API (`http://localhost:8080`) for file ingestion
 
-#### Claude Code
-
-Edit `%USERPROFILE%\.claude\settings.json`:
-
-```json
-{
-  "mcpServers": {
-    "orunla": {
-      "command": "C:/Users/YourName/Orunla_Windows_v0.3.4/orunla_mcp.exe"
-    }
-  }
-}
-```
-
-#### Cursor / Cline / Windsurf
-
-Add the same configuration to your IDE's MCP settings. The command is identical.
+> **Stdio MCP does not require the desktop app.** The standalone `orunla_mcp.exe` works independently — you only need the desktop app for the cloud relay, the web UI, and the REST API server on port 8080.
 
 ---
 
@@ -157,6 +201,7 @@ Orunla uses a **Free / Pro** licensing model.
 - **All local features are free forever** — no time limits, no feature restrictions
 - Ingest, recall, search, delete, purge, garbage collection, deduplication
 - Desktop app, CLI, MCP server, REST API — all fully functional
+- Cloud relay for Claude browser — free for all users
 - Your data stays 100% on your machine
 
 ### Trial (14 Days)
@@ -211,31 +256,38 @@ This SQLite database contains:
 - Encrypted license information
 - Sync changelog (Pro only)
 
-**Privacy:** All core functionality runs 100% locally. No data is sent to external servers unless you enable Pro sync, in which case only encrypted data is transmitted to the sync relay.
+**Privacy:** All core functionality runs 100% locally. No data is sent to external servers unless you enable Pro sync, in which case only encrypted data is transmitted to the sync relay. The cloud MCP relay only forwards MCP protocol messages — it does not store or read your memory data.
 
 ---
 
 ## Troubleshooting
 
 ### Desktop app won't start
-- **Antivirus:** Some antivirus software may block unsigned executables. Add an exception for the `windows` folder.
+- **Antivirus:** Some antivirus software may block unsigned executables. Add an exception for the folder.
 - **Run as Administrator:** Right-click `Orunla.exe` > "Run as administrator"
 - **Missing DLL:** Make sure `onnxruntime.dll` is in the same folder as the executables. Do not move executables out of the folder without also moving the DLL.
 
 ### MCP not connecting
 - Use **forward slashes** in the path (`C:/Users/...` not `C:\Users\...`)
-- Use the full path including `Orunla_Windows_v0.3.4/orunla_mcp.exe`
+- Use the full path including `Orunla_Windows_v0.4.1/orunla_mcp.exe`
 - Restart Claude Desktop / Cursor completely (quit and reopen)
 - Check logs in your AI assistant for error messages
+
+### Claude browser relay not connecting
+- Make sure the desktop app is open and running
+- Check the Server Status card — the relay should show "Available"
+- If it shows "No device ID", close and reopen the app
+- The relay URL is stable — you only need to configure it once in Claude
 
 ### Model download fails
 On first run, Orunla downloads the GliNER model (~40MB). If this fails:
 - Check your internet connection
 - Check you have write access to `%USERPROFILE%\.orunla\`
 
-### Port already in use
+### Port 8080 already in use
+The desktop app uses port 8080 for the unified server. If something else is using this port:
 ```powershell
-netstat -ano | findstr :3000
+netstat -ano | findstr :8080
 taskkill /PID <pid> /F
 ```
 
@@ -247,23 +299,9 @@ Remove-Item "$env:USERPROFILE\.orunla\memory.db"
 
 ---
 
-### Option 5: Any AI Chatbot (ChatGPT, Gemini, Claude Web, etc.)
-
-Use the REST API to connect Orunla to any AI that supports custom actions, skills, or system prompts — including ChatGPT Custom GPTs, Google Gemini Gems, Claude Projects, and more.
-
-See `documentation\AI_SETUP.md` for:
-- Step-by-step ChatGPT Custom GPT setup (with OpenAPI spec for Actions)
-- Google Gemini Gem setup
-- Claude browser MCP connector setup (SSE mode + Cloudflare Tunnel)
-- Copy-paste system prompts that teach any AI to use Orunla automatically
-- A `CLAUDE.md` template for Claude Code users
-
----
-
 ## Documentation
 
 - **CLI Reference:** `documentation\CLI.md`
 - **MCP Guide:** `documentation\MCP.md`
 - **REST API:** `documentation\API_REFERENCE.md`
-- **AI Chatbot Setup:** `documentation\AI_SETUP.md`
 - **Architecture:** `documentation\OVERVIEW.md`

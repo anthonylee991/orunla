@@ -1,7 +1,7 @@
-//! WebSocket relay client for MCP proxy.
+//! WebSocket relay client for MCP and REST API proxy.
 //!
-//! Connects outbound to the cloud relay server so Claude browser can reach
-//! the desktop MCP server without Cloudflare Tunnel or port forwarding.
+//! Connects outbound to the cloud relay server so remote clients can reach
+//! the desktop MCP server and REST API without Cloudflare Tunnel or port forwarding.
 
 use anyhow::Result;
 use futures::{SinkExt, StreamExt};
@@ -91,10 +91,26 @@ impl McpRelayClient {
         while let Some(msg) = read.next().await {
             match msg {
                 Ok(Message::Text(text)) => {
-                    // Check for relay control messages
+                    // Check for relay control messages and API relay requests
                     if let Ok(ctrl) = serde_json::from_str::<serde_json::Value>(&text) {
                         if ctrl.get("type").and_then(|v| v.as_str()) == Some("connected") {
                             eprintln!("[mcp-relay] Relay confirmed connection");
+                            continue;
+                        }
+
+                        // Handle API relay requests (REST API proxied through relay)
+                        if ctrl.get("type").and_then(|v| v.as_str()) == Some("api_request") {
+                            let write_clone = write.clone();
+                            let request_json = ctrl.clone();
+                            tokio::spawn(async move {
+                                let response = handle_api_request(request_json).await;
+                                let response_str =
+                                    serde_json::to_string(&response).unwrap_or_default();
+                                let mut w = write_clone.lock().await;
+                                if let Err(e) = w.send(Message::Text(response_str)).await {
+                                    eprintln!("[api-relay] Failed to send response: {}", e);
+                                }
+                            });
                             continue;
                         }
                     }
@@ -162,5 +178,80 @@ impl McpRelayClient {
 
         heartbeat_handle.abort();
         Ok(())
+    }
+}
+
+/// Handle an API relay request by proxying to the local unified server.
+async fn handle_api_request(request: serde_json::Value) -> serde_json::Value {
+    let id = request
+        .get("id")
+        .and_then(|v| v.as_str())
+        .unwrap_or("")
+        .to_string();
+    let method = request
+        .get("method")
+        .and_then(|v| v.as_str())
+        .unwrap_or("GET");
+    let path = request
+        .get("path")
+        .and_then(|v| v.as_str())
+        .unwrap_or("/");
+    let headers = request
+        .get("headers")
+        .cloned()
+        .unwrap_or(serde_json::json!({}));
+    let body = request.get("body").cloned();
+
+    let url = format!("http://localhost:8080{}", path);
+    let client = reqwest::Client::new();
+
+    let mut req_builder = match method {
+        "POST" => client.post(&url),
+        "PUT" => client.put(&url),
+        "PATCH" => client.patch(&url),
+        "DELETE" => client.delete(&url),
+        _ => client.get(&url),
+    };
+
+    // Forward auth headers from the relay message
+    if let Some(obj) = headers.as_object() {
+        for (key, val) in obj {
+            if let Some(v) = val.as_str() {
+                if !v.is_empty() {
+                    req_builder = req_builder.header(key.as_str(), v);
+                }
+            }
+        }
+    }
+
+    // Attach JSON body for methods that support it
+    if let Some(body_val) = body {
+        if !body_val.is_null() {
+            req_builder = req_builder
+                .header("content-type", "application/json")
+                .json(&body_val);
+        }
+    }
+
+    match req_builder.send().await {
+        Ok(resp) => {
+            let status = resp.status().as_u16();
+            let body = resp
+                .json::<serde_json::Value>()
+                .await
+                .unwrap_or(serde_json::json!({"error": "Failed to parse response body"}));
+            serde_json::json!({
+                "type": "api_response",
+                "id": id,
+                "status": status,
+                "body": body,
+            })
+        }
+        Err(e) => serde_json::json!({
+            "type": "api_response",
+            "id": id,
+            "status": 502,
+            "body": { "error": format!("Local server unreachable: {}", e) },
+        }),
     }
 }

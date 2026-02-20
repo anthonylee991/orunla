@@ -4,7 +4,7 @@ use orunla::licensing::{LicenseStore, LicenseValidator, Tier};
 use orunla::mcp::MCPServer;
 use orunla::relay_client::McpRelayClient;
 use orunla::retriever::{search::HybridRetriever, RecallRequest, Retriever};
-use orunla::storage::{sqlite::SqliteStorage, Storage, StorageConfig};
+use orunla::storage::{sqlite::SqliteStorage, AppConfig, Storage, StorageConfig};
 use orunla::sync::changelog::ChangelogStore;
 use orunla::sync::client::{SyncClient, SyncConfig};
 use orunla::utils::document::{chunk_document, parse_csv, parse_json_lines};
@@ -290,6 +290,7 @@ pub struct ServerInfo {
     pub local_mcp_url: String,
     pub local_api_url: String,
     pub relay_url: Option<String>,
+    pub relay_api_url: Option<String>,
     pub device_id: Option<String>,
 }
 
@@ -305,14 +306,35 @@ async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, Strin
             id
         )
     });
+    let relay_api_url = device_id.as_ref().map(|id| {
+        format!(
+            "https://orunla-production.up.railway.app/api/{}",
+            id
+        )
+    });
 
     Ok(ServerInfo {
         server_port: port,
         local_mcp_url: format!("http://localhost:{}/sse", port),
         local_api_url: format!("http://localhost:{}", port),
         relay_url,
+        relay_api_url,
         device_id,
     })
+}
+
+#[tauri::command]
+async fn get_api_key() -> Result<Option<String>, String> {
+    let config = AppConfig::load();
+    Ok(config.api_key)
+}
+
+#[tauri::command]
+async fn set_api_key(key: Option<String>) -> Result<String, String> {
+    let mut config = AppConfig::load();
+    config.api_key = key.filter(|k| !k.trim().is_empty());
+    config.save().map_err(|e| e.to_string())?;
+    Ok("API key saved. Restart the app for it to take effect.".to_string())
 }
 
 #[cfg(windows)]
@@ -445,13 +467,14 @@ pub fn run() {
                     return;
                 }
 
+                let api_key = AppConfig::load().api_key;
                 let port = 8080u16;
                 eprintln!("[orunla] Starting unified server on port {}...", port);
                 if let Err(e) = orunla::unified_server::start_unified_server(
                     api_storage,
                     mcp_server,
                     port,
-                    None, // No API key for local desktop use
+                    api_key,
                 ).await {
                     eprintln!("[orunla] Unified server error: {}", e);
                 }
@@ -497,7 +520,9 @@ pub fn run() {
             purge_topic,
             activate_license,
             get_license_status,
-            get_server_info
+            get_server_info,
+            get_api_key,
+            set_api_key
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="oGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00E5FF"/>
+      <stop offset="40%" stop-color="#00BCD4"/>
+      <stop offset="100%" stop-color="#AB47BC"/>
+    </linearGradient>
+
+    <filter id="glow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur in="SourceGraphic" stdDeviation="12" result="blur"/>
+      <feComposite in="SourceGraphic" in2="blur" operator="over"/>
+    </filter>
+
+    <radialGradient id="bg" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#1A1A2E"/>
+      <stop offset="100%" stop-color="#0A0A14"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="512" height="512" rx="90" fill="url(#bg)"/>
+
+  <!-- Lowercase o — taller than wide -->
+  <rect x="136" y="116" width="240" height="280" rx="120" ry="120"
+        fill="none" stroke="url(#oGrad)" stroke-width="64"
+        filter="url(#glow)"/>
+</svg>

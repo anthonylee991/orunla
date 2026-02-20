@@ -165,6 +165,7 @@ jobs:
           cp docs/AI_SETUP.md "${DIST}/documentation/" 2>/dev/null || true
           cp docs/OVERVIEW.md "${DIST}/documentation/" 2>/dev/null || true
           cp docs/LICENSE "${DIST}/documentation/" 2>/dev/null || true
+          cp docs/DEVELOPER.md "${DIST}/documentation/" 2>/dev/null || true
           cp docs/THIRD_PARTY_NOTICES.md "${DIST}/documentation/" 2>/dev/null || true
 
           # Zip
@@ -196,7 +197,7 @@ jobs:
 
           # Documentation
           Copy-Item "README-WINDOWS.md" "$DIST\README.md"
-          $docs = @("docs\CLI.md", "docs\MCP.md", "docs\API_REFERENCE.md", "docs\AI_SETUP.md", "docs\OVERVIEW.md", "docs\LICENSE", "docs\THIRD_PARTY_NOTICES.md")
+          $docs = @("docs\CLI.md", "docs\MCP.md", "docs\API_REFERENCE.md", "docs\AI_SETUP.md", "docs\OVERVIEW.md", "docs\DEVELOPER.md", "docs\LICENSE", "docs\THIRD_PARTY_NOTICES.md")
           foreach ($doc in $docs) {
             if (Test-Path $doc) { Copy-Item $doc "$DIST\documentation\" }
           }
@@ -215,6 +216,6 @@ jobs:
           TAG="${{ github.ref_name }}"
           # workflow_dispatch may not have a tag, use a default
           if [ -z "$TAG" ] || [ "$TAG" = "" ]; then
-            TAG="v0.3.4"
+            TAG="v0.4.1"
           fi
           gh release upload "$TAG" "${{ matrix.dist_name }}.zip" --clobber

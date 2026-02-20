@@ -3,8 +3,8 @@
 The Orunla Command Line Interface (CLI) is the primary tool for administrators and advanced users to manage the memory system, perform maintenance, and run the background server.
 
 **Binary Name:**
-- Windows: `orunla_cli.exe` (in `Orunla_Windows_v0.3.4\`)
-- macOS: `orunla_cli` (in `Orunla_macOS_v0.3.4/orunla-mac-{arch}/`)
+- Windows: `orunla_cli.exe` (in `Orunla_Windows_v0.4.1\`)
+- macOS: `orunla_cli` (in `Orunla_macOS_v0.4.1/orunla-mac-{arch}/`)
 
 ---
 
@@ -204,6 +204,8 @@ With API key authentication (recommended when exposing to network):
 ```
 
 When running as a Pro user, the server also starts a background sync loop that pushes and pulls changes every 30 seconds.
+
+**Note:** When the Orunla desktop app is running, the REST API is already available on port 8080 (along with MCP SSE). You only need `serve` if you want to run the REST API standalone without the desktop app, or on a different port.
 
 ---
 

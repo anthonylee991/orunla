@@ -20,9 +20,13 @@ const serverDot = document.getElementById('server-dot');
 const serverStatusLabel = document.getElementById('server-status-label');
 const relayDot = document.getElementById('relay-dot');
 const relayStatusLabel = document.getElementById('relay-status-label');
-const localMcpUrl = document.getElementById('local-mcp-url');
-const localApiUrl = document.getElementById('local-api-url');
 const relayUrlEl = document.getElementById('relay-url');
+const relayApiUrlEl = document.getElementById('relay-api-url');
+
+// API key elements
+const apiKeyInput = document.getElementById('api-key-input');
+const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+const apiKeyStatus = document.getElementById('api-key-status');
 
 async function updateStats() {
     try {
@@ -67,19 +71,19 @@ async function loadServerInfo() {
     try {
         const info = await invoke('get_server_info');
 
-        localMcpUrl.textContent = info.local_mcp_url;
-        localApiUrl.textContent = info.local_api_url;
-
         if (info.relay_url) {
             relayUrlEl.textContent = info.relay_url;
+            relayApiUrlEl.textContent = info.relay_api_url || 'N/A';
             setStatus(relayDot, relayStatusLabel, 'online', 'Available');
         } else {
             relayUrlEl.textContent = 'No device ID — run any command first';
+            relayApiUrlEl.textContent = 'No device ID';
             setStatus(relayDot, relayStatusLabel, 'offline', 'No device ID');
         }
     } catch (e) {
         console.error("Failed to load server info:", e);
         relayUrlEl.textContent = 'Failed to load';
+        relayApiUrlEl.textContent = 'Failed to load';
         setStatus(relayDot, relayStatusLabel, 'offline', 'Error');
     }
 }
@@ -224,6 +228,39 @@ if (purgeBtn) {
     });
 }
 
+// --- API Key ---
+
+async function loadApiKey() {
+    try {
+        const key = await invoke('get_api_key');
+        if (key) {
+            apiKeyInput.value = key;
+            apiKeyStatus.textContent = 'API key is set. Restart app to apply changes.';
+            apiKeyStatus.style.color = 'var(--neon-green, #0f0)';
+        } else {
+            apiKeyStatus.textContent = 'No API key set. REST API is unprotected.';
+            apiKeyStatus.style.color = 'var(--cyber-yellow, #ff0)';
+        }
+    } catch (e) {
+        console.error("Failed to load API key:", e);
+    }
+}
+
+saveApiKeyBtn.addEventListener('click', async () => {
+    const key = apiKeyInput.value.trim() || null;
+    saveApiKeyBtn.disabled = true;
+    try {
+        const msg = await invoke('set_api_key', { key });
+        showStatus(msg);
+        loadApiKey();
+    } catch (e) {
+        console.error("Failed to save API key:", e);
+        showStatus("Error saving API key");
+    } finally {
+        saveApiKeyBtn.disabled = false;
+    }
+});
+
 // --- Initialization ---
 
 updateStats();
@@ -231,6 +268,7 @@ setInterval(updateStats, 5000);
 
 // Load server info once, then poll server health every 5s
 loadServerInfo();
+loadApiKey();
 // Give the server a moment to start before first health check
 setTimeout(checkServerStatus, 2000);
 setInterval(checkServerStatus, 5000);

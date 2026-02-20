@@ -611,47 +611,52 @@
                 <h2>Server Status</h2>
                 <div class="servers-section">
                     <div class="server-card">
-                        <h3>Unified Server</h3>
+                        <h3>Local Server</h3>
                         <div class="server-info-row">
                             <span id="server-dot" class="status-dot connecting"></span>
                             <span id="server-status-label" class="status-label connecting">Checking...</span>
                         </div>
-                        <div class="server-info-row">
-                            <span class="server-info-label">MCP SSE</span>
-                        </div>
-                        <div class="url-row">
-                            <span id="local-mcp-url" class="url-value">http://localhost:8080/sse</span>
-                            <button class="copy-btn" onclick="copyUrl('local-mcp-url')">COPY</button>
-                        </div>
-                        <div class="server-info-row" style="margin-top: 0.5rem;">
-                            <span class="server-info-label">REST API</span>
-                        </div>
-                        <div class="url-row">
-                            <span id="local-api-url" class="url-value">http://localhost:8080</span>
-                            <button class="copy-btn" onclick="copyUrl('local-api-url')">COPY</button>
-                        </div>
                         <div class="server-note">
-                            Both MCP (SSE) and REST API run on the same port. Starts automatically with the app.
+                            MCP + REST API on port 8080. Starts automatically with the app.
                         </div>
                     </div>
                     <div class="server-card">
-                        <h3>Cloud Relay</h3>
+                        <h3>Remote Access</h3>
                         <div class="server-info-row">
                             <span id="relay-dot" class="status-dot connecting"></span>
                             <span id="relay-status-label" class="status-label connecting">Connecting...</span>
                         </div>
                         <div class="server-info-row">
-                            <span class="server-info-label">Relay URL</span>
+                            <span class="server-info-label">MCP SSE</span>
                         </div>
                         <div class="url-row">
                             <span id="relay-url" class="url-value">Loading...</span>
                             <button class="copy-btn" onclick="copyUrl('relay-url')">COPY</button>
                         </div>
+                        <div class="server-info-row" style="margin-top: 0.5rem;">
+                            <span class="server-info-label">REST API</span>
+                        </div>
+                        <div class="url-row">
+                            <span id="relay-api-url" class="url-value">Loading...</span>
+                            <button class="copy-btn" onclick="copyUrl('relay-api-url')">COPY</button>
+                        </div>
                         <div class="server-note">
-                            Paste this URL into Claude browser's MCP connector. Works whenever this app is open — no tunnel required.
+                            MCP SSE for browser-based MCP clients (Claude.ai, ChatGPT Connector). REST API for ChatGPT Custom GPTs, n8n, Make.com, or any HTTP client. Works whenever this app is open.
                         </div>
                     </div>
                 </div>
+            </div>
+
+            <div class="card">
+                <h2>API Key</h2>
+                <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">
+                    Protects the REST API (local and remote). Leave blank for no authentication.
+                </p>
+                <div class="input-group">
+                    <input type="password" id="api-key-input" placeholder="Enter API key...">
+                    <button id="save-api-key-btn">Save</button>
+                </div>
+                <p id="api-key-status" style="font-size: 0.8rem; margin-top: 0.75rem;"></p>
             </div>
 
             <div class="card">

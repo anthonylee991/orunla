@@ -8,7 +8,7 @@
 ## What's Included
 
 ```
-Orunla_macOS_v0.3.4/
+Orunla_macOS_v0.4.1/
 ├── orunla-mac-aarch64/    ← Apple Silicon (M1/M2/M3/M4)
 └── orunla-mac-x86_64/     ← Intel Macs
 
@@ -47,10 +47,10 @@ Open Terminal and navigate to the correct folder for your Mac:
 
 ```bash
 # Apple Silicon (M1/M2/M3/M4):
-cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-aarch64
+cd /path/to/Orunla_macOS_v0.4.1/orunla-mac-aarch64
 
 # Intel Mac:
-cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-x86_64
+cd /path/to/Orunla_macOS_v0.4.1/orunla-mac-x86_64
 ```
 
 Replace `/path/to/` with wherever you extracted the bundle (e.g., `~/Downloads/`).
@@ -78,11 +78,11 @@ To make this permanent, add it to your shell profile (adjust path for your setup
 
 ```bash
 # For zsh (default on macOS) — Apple Silicon example:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.zshrc
 source ~/.zshrc
 
 # For bash:
-echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
+echo 'export ORT_DYLIB_PATH="$HOME/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"' >> ~/.bash_profile
 source ~/.bash_profile
 ```
 
@@ -146,7 +146,7 @@ Run commands from inside your platform folder:
 
 ### Option 3: REST API Server
 
-Start the server for webhooks, n8n, Make.com, or custom integrations:
+Start the server for local integrations, scripting, or headless use:
 
 ```bash
 ./orunla_cli serve --port 3000
@@ -160,9 +160,34 @@ To secure the API when exposing to a network:
 
 See `documentation/API_REFERENCE.md` for all endpoints.
 
+#### API Key (v0.4.0)
+
+When using the REST API server, you can secure it with an API key. When set, all REST API requests require the key via one of:
+
+- `X-API-Key: your-key` header
+- `Authorization: Bearer your-key` header
+
+**MCP is not affected** — the API key only applies to REST API endpoints. Stdio MCP and SSE MCP connections are not gated by the API key.
+
+To set the API key:
+1. Pass it on the command line: `./orunla_cli serve --port 3000 --api-key "your-key"`, **or**
+2. Manually edit `~/.orunla/config.json` and add `"api_key": "your-key"`
+
+Requires a server restart to take effect.
+
+#### Cloud REST API Relay (v0.4.0 — Windows/Tauri Desktop App)
+
+If you use the Windows desktop app (Orunla.exe), it provides a **cloud REST API relay URL** shown in the "Remote Access" card. External services (ChatGPT Custom GPTs, n8n, Make.com) can use this URL to access your Orunla REST API without setting up tunnels or port forwarding.
+
+- The relay URL works whenever the desktop app is open
+- If an API key is set, remote requests must include it
+- **File upload** (`/ingest-file`) is not supported via the relay — use the local API for file ingestion
+
+> **Stdio MCP does not require the desktop app.** The standalone `orunla_mcp` binary works independently — you only need the REST API server (via `orunla_cli serve`) or the desktop app for REST/relay features.
+
 ### Option 4: MCP Integration (Claude Desktop / Cursor / Cline)
 
-The MCP server gives AI assistants direct access to your memory graph.
+The MCP server gives AI assistants direct access to your memory graph. This works **independently of the desktop app** — you don't need a server running.
 
 **Important:** All paths in MCP configs must be absolute. Replace the example paths below with the actual location of your Orunla folder.
 
@@ -178,9 +203,9 @@ The MCP server gives AI assistants direct access to your memory graph.
    {
      "mcpServers": {
        "orunla": {
-         "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
+         "command": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/orunla_mcp",
          "env": {
-           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
+           "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"
          }
        }
      }
@@ -199,9 +224,9 @@ Add to `~/.claude/settings.json` or your project's `.claude/settings.json`:
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -286,7 +311,7 @@ This SQLite database contains:
 
 Run the quarantine removal from Step 2:
 ```bash
-cd /path/to/Orunla_macOS_v0.3.4/orunla-mac-aarch64
+cd /path/to/Orunla_macOS_v0.4.1/orunla-mac-aarch64
 xattr -cr .
 chmod +x orunla_cli orunla_mcp launch_orunla.sh
 ```

@@ -1,204 +1,225 @@
 # Orunla REST API Reference
 
-The Orunla background server provides a JSON REST API for integrating with AI agents, webhooks, and no-code tools.
+Access your Orunla memory from any tool, automation, or AI integration through the cloud relay.
 
-**Default Base URL:** `http://localhost:3000`
+**Base URL:** Copy from the desktop app's **"Remote Access"** card. It looks like:
+```
+https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID
+```
 
-> **Want to connect Orunla to ChatGPT, Gemini, Claude, or another AI chatbot?** See `AI_SETUP.md` for step-by-step setup guides, OpenAPI specs, and copy-paste system prompts.
+**Requirements:** The Orunla desktop app must be open for API requests to work.
+
+> Want step-by-step setup guides for ChatGPT, Claude, Gemini, or n8n? See `AI_SETUP.md`.
 
 ---
 
-## Security & Authentication
+## Authentication
 
-### Starting the Server with API Key Protection
+If you set an API key in the desktop app's **API Key** settings panel, all requests (except health/stats) require it:
 
-**IMPORTANT:** If you expose the API to the network (via ngrok, tunneling, or cloud deployment), you MUST use API key authentication to protect your data.
-
-**Windows:**
-```powershell
-.\orunla_cli.exe serve --port 3000 --api-key "your-secret-key-here"
+```
+X-API-Key: your-key
 ```
 
-**macOS:**
-```bash
-./orunla_cli serve --port 3000 --api-key "your-secret-key-here"
+or:
+
+```
+Authorization: Bearer your-key
 ```
 
-Or use an environment variable instead of the flag:
-```bash
-export ORUNLA_API_KEY="your-secret-key-here"
-./orunla_cli serve --port 3000
-```
+**Public endpoints** (no key needed): `GET /health`, `GET /stats`
 
-### Authentication Methods
-
-When API key authentication is enabled, all protected endpoints require one of:
-
-**1. Authorization Header (Bearer Token)**
-```bash
-curl -H "Authorization: Bearer your-secret-key-here" \
-     -X POST http://localhost:3000/ingest \
-     -H "Content-Type: application/json" \
-     -d '{"text": "Test memory"}'
-```
-
-**2. X-API-Key Header**
-```bash
-curl -H "X-API-Key: your-secret-key-here" \
-     -X POST http://localhost:3000/ingest \
-     -H "Content-Type: application/json" \
-     -d '{"text": "Test memory"}'
-```
-
-### Rate Limiting
-
-**All endpoints are rate-limited to 60 requests per minute per IP address.**
-
-If you exceed the rate limit, you'll receive a `429 Too Many Requests` response.
-
-### Input Size Limits
-
-- **Text input:** Maximum 1MB (1,000,000 characters)
-- **File upload:** Maximum 50MB
-- **Query length:** Maximum 10KB (10,000 characters)
-- **Result limit:** Maximum 10,000 results per query
-
-### Protected vs Public Endpoints
-
-**Public Endpoints** (no authentication required):
-- `GET /health`
-- `GET /stats`
-
-**Protected Endpoints** (require API key if configured):
-- `POST /ingest`
-- `POST /ingest-file`
-- `POST /recall`
-- `DELETE /memories/:id`
-- `POST /memories/purge`
+**Protected endpoints** (key required if set): everything else
 
 ---
 
-## Health & Stats
+## Endpoints
 
 ### `GET /health`
-Verify if the server is running.
-- **Response:**
-  ```json
-  { "status": "ok", "version": "0.3.4" }
-  ```
+
+Check if Orunla is running.
+
+```bash
+curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/health
+```
+
+**Response:**
+```json
+{ "status": "ok", "version": "0.4.1" }
+```
+
+---
 
 ### `GET /stats`
-Get high-level database statistics.
-- **Response:**
-  ```json
-  {
-    "node_count": 12,
-    "edge_count": 15,
-    "db_size_bytes": 77824
-  }
-  ```
+
+Get memory database statistics.
+
+```bash
+curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/stats
+```
+
+**Response:**
+```json
+{
+  "node_count": 12,
+  "edge_count": 15,
+  "db_size_bytes": 77824
+}
+```
 
 ---
-
-## Ingestion (Adding Data)
 
 ### `POST /ingest`
-Extract facts from raw text and add them to the knowledge graph.
-- **Body:**
-  ```json
-  {
-    "text": "Your raw text here",
-    "source_id": "optional_reference_id"
-  }
-  ```
-- **Response:**
-  ```json
-  { "status": "ok", "added_triplets": 3 }
-  ```
 
-### `POST /ingest-file`
-Upload a file (`.txt`, `.md`, `.csv`, or `.json`) to be processed.
-- **Method:** `POST` (Multipart Content)
-- **Field:** `file` (the file attachment)
-- **Response:**
-  ```json
-  {
-    "status": "ok",
-    "file": "example.txt",
-    "chunks_processed": 5,
-    "total_triplets_added": 12
-  }
-  ```
+Save a memory. Orunla extracts facts from the text and adds them to your knowledge graph.
+
+```bash
+curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/ingest \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"text": "Sarah manages the marketing budget and reports to David."}'
+```
+
+**Body:**
+```json
+{
+  "text": "Your text here",
+  "source_id": "optional_reference_id"
+}
+```
+
+**Response:**
+```json
+{ "status": "ok", "added_triplets": 3 }
+```
 
 ---
-
-## Retrieval (Getting Data)
 
 ### `POST /recall`
-Search for facts based on a query. Uses hybrid keyword and strength-decay ranking.
-- **Body:**
-  ```json
-  {
-    "query": "Who is Jane?",
-    "limit": 5,
-    "min_strength": 0.1
-  }
-  ```
-- **Response:**
-  ```json
-  {
-    "memories": [
-      {
-        "id": "uuid-string",
-        "subject": "Jane",
-        "predicate": "manages",
-        "object": "Marketing",
-        "text": "Jane manages the Marketing budget.",
-        "confidence": 0.95,
-        "strength": 0.88
-      }
-    ]
-  }
-  ```
+
+Search for memories matching a query. Returns results ranked by relevance and recency.
+
+```bash
+curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/recall \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"query": "Who is Sarah?", "limit": 5}'
+```
+
+**Body:**
+```json
+{
+  "query": "search term",
+  "limit": 5,
+  "min_strength": 0.1
+}
+```
+
+Only `query` is required. `limit` defaults to 10. `min_strength` defaults to 0.0.
+
+**Response:**
+```json
+{
+  "memories": [
+    {
+      "id": "uuid-string",
+      "subject": "Sarah",
+      "predicate": "manages",
+      "object": "marketing budget",
+      "text": "Sarah manages the marketing budget and reports to David.",
+      "confidence": 0.95,
+      "strength": 0.88
+    }
+  ]
+}
+```
 
 ---
-
-## Maintenance & Deletion
-
-### `DELETE /memories/:id`
-Permanently delete a specific memory by its ID.
-- **Response:** `200 OK`
 
 ### `POST /memories/purge`
-Delete all memories matching a keyword query.
-- **Body:**
-  ```json
-  { "query": "project x" }
-  ```
-- **Response:**
-  ```json
-  { "status": "ok", "deleted_count": 5 }
-  ```
+
+Delete all memories matching a keyword or topic.
+
+```bash
+curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/memories/purge \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"query": "old project"}'
+```
+
+**Body:**
+```json
+{ "query": "topic to forget" }
+```
+
+**Response:**
+```json
+{ "status": "ok", "deleted_count": 5 }
+```
 
 ---
 
-## Data Sustainability
+### `DELETE /memories/:id`
+
+Delete a specific memory by its ID (returned from `/recall`).
+
+```bash
+curl -X DELETE https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/memories/abc-123 \
+  -H "X-API-Key: your-key"
+```
+
+**Response:** `200 OK`
+
+---
 
 ### `POST /gc`
-Manually trigger Garbage Collection to prune decayed memories.
-- **Body:**
-  ```json
-  { "threshold": 0.05 }
-  ```
-- **Response:**
-  ```json
-  { "status": "ok", "deleted_memories": 2, "cleaned_nodes": 1 }
-  ```
+
+Run garbage collection to clean up old, decayed memories.
+
+```bash
+curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/gc \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: your-key" \
+  -d '{"threshold": 0.05}'
+```
+
+**Body:**
+```json
+{ "threshold": 0.05 }
+```
+
+Memories with strength below the threshold are deleted. Default: 0.05.
+
+**Response:**
+```json
+{ "status": "ok", "deleted_memories": 2, "cleaned_nodes": 1 }
+```
+
+---
+
+## File Upload
+
+File upload (`/ingest-file`) is only available through the desktop app interface, not through the relay. Use the desktop app UI to upload `.txt`, `.md`, `.csv`, or `.json` files directly.
+
+---
+
+## Limits
+
+| Limit | Value |
+|-------|-------|
+| Rate limit (relay) | 120 requests/min per IP |
+| Text input | 1 MB max |
+| File upload | 50 MB max (desktop app only) |
+| Query length | 10 KB max |
+| Results per query | 10,000 max |
+| Relay timeout | 30 seconds |
 
 ---
 
 ## Background Sync (Pro)
 
-When the server is running with an active Pro license (or during the 14-day trial), a background sync loop runs automatically every 30 seconds. This pushes local changes and pulls remote changes from your other devices.
+With a Pro license (or during the 14-day trial), your memories sync automatically across devices every 30 seconds. No configuration needed — just keep the desktop app running.
 
-No additional API endpoints are needed — sync is fully automatic. Use the CLI `orunla_cli license` command to check your sync status, and `orunla_cli activate <key>` to activate Pro.
+---
+
+*For local API access, CLI commands, manual server setup, and advanced configuration, see `DEVELOPER.md`.*

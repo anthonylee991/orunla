@@ -68,6 +68,28 @@ Or press `Cmd + Shift + .` in Finder to show hidden files.
 
 ## Installation
 
+### Claude Browser (via Cloud Relay) — Easiest Setup
+
+The simplest way to use Orunla with Claude is through the desktop app's built-in cloud relay. No tunnels, no port forwarding, no configuration files.
+
+1. Open **Orunla.exe** (Windows) on your computer
+2. Look at the **Server Status** card in the app — copy the **Relay URL**
+3. In Claude browser, go to **Settings → MCP Connectors → Add**
+4. Paste the relay URL and save
+5. Claude can now read and write your memories
+
+The relay URL is stable — you configure it once and it works whenever the desktop app is open. The relay is free for all users.
+
+**How it works:** The desktop app connects outbound to a cloud relay via WebSocket. Claude browser connects to the relay via standard MCP SSE protocol. The relay forwards messages between them. Your memory data is processed locally — the relay only forwards MCP protocol messages.
+
+---
+
+> **Note:** The stdio MCP server (`orunla_mcp` / `orunla_mcp.exe`) works **independently of the desktop app**. You do NOT need the desktop app running to use Orunla with Claude Code, Cursor, Cline, or any MCP client that supports stdio transport. The desktop app is only required for the cloud relay (browser-based MCP clients).
+
+> **REST API Relay (v0.4.0):** The desktop app also provides a cloud REST API relay for external services like ChatGPT Custom GPTs, n8n, and Make.com. See `AI_SETUP.md` for details.
+
+---
+
 ### Claude Desktop
 
 **Windows** — edit `%APPDATA%\Claude\claude_desktop_config.json`:
@@ -76,7 +98,7 @@ Or press `Cmd + Shift + .` in Finder to show hidden files.
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.4.1\\orunla_mcp.exe",
       "args": []
     }
   }
@@ -89,9 +111,9 @@ Or press `Cmd + Shift + .` in Finder to show hidden files.
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -112,7 +134,7 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.4.1\\orunla_mcp.exe",
       "args": []
     }
   }
@@ -125,9 +147,9 @@ Replace the paths with the actual location of your Orunla folder. Restart Claude
 {
   "mcpServers": {
     "orunla": {
-      "command": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp",
+      "command": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/orunla_mcp",
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"
       }
     }
   }
@@ -161,7 +183,7 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
     "orunla": {
       "type": "local",
       "command": [
-        "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe"
+        "C:\\Users\\YourName\\Orunla_Windows_v0.4.1\\orunla_mcp.exe"
       ],
       "enabled": true
     }
@@ -178,10 +200,10 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
     "orunla": {
       "type": "local",
       "command": [
-        "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/orunla_mcp"
+        "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/orunla_mcp"
       ],
       "env": {
-        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.3.4/orunla-mac-aarch64/libonnxruntime.dylib"
+        "ORT_DYLIB_PATH": "/Users/YourUsername/Orunla_macOS_v0.4.1/orunla-mac-aarch64/libonnxruntime.dylib"
       },
       "enabled": true
     }
@@ -227,7 +249,7 @@ The `command`, `args`, and `env` values are identical to the Claude Desktop exam
 You can test the MCP server directly in PowerShell:
 
 ```powershell
-cd C:\Users\YourName\Orunla_Windows_v0.3.4
+cd C:\Users\YourName\Orunla_Windows_v0.4.1
 .\orunla_mcp.exe
 ```
 
@@ -256,9 +278,9 @@ If you encounter issues, you can try adding optional parameters:
 {
   "mcpServers": {
     "orunla": {
-      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4\\orunla_mcp.exe",
+      "command": "C:\\Users\\YourName\\Orunla_Windows_v0.4.1\\orunla_mcp.exe",
       "args": [],
-      "cwd": "C:\\Users\\YourName\\Orunla_Windows_v0.3.4",
+      "cwd": "C:\\Users\\YourName\\Orunla_Windows_v0.4.1",
       "env": {
         "USERPROFILE": "C:\\Users\\YourName",
         "HOME": "C:\\Users\\YourName"
@@ -434,10 +456,10 @@ orunla_cli activate "your-license-key"
 
 ## Privacy Note
 
-The MCP server communicates over standard input/output (Stdio). All memory operations run 100% locally.
+The MCP server communicates over standard input/output (Stdio) when used with Claude Code, Cursor, or other IDEs. When used via the cloud relay (Claude browser), messages are forwarded through the relay server but all memory operations still run locally on your machine.
 
-- **Free tier:** No data is ever sent to external servers. Everything stays in your local database.
-- **Pro tier with sync:** Only encrypted data (AES-256-GCM) is transmitted to the sync relay. The relay cannot read your memories — it only stores and forwards ciphertext between your devices.
+- **Free tier:** No memory data is ever sent to external servers. The cloud relay only forwards MCP protocol messages — it does not store or read your data.
+- **Pro tier with sync:** Only encrypted data (AES-256-GCM) is transmitted to the sync relay. The relay cannot read your memories.
 
 **Database location:**
 - macOS: `~/.orunla/memory.db`
