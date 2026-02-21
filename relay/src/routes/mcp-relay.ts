@@ -253,6 +253,20 @@ mcpRelayRoutes.post('/:deviceId/message', async (c) => {
   return c.body(null, 202);
 });
 
+// Trailing-slash aliases — ChatGPT sends /sse/ per OpenAI docs.
+// Hono doesn't auto-normalize trailing slashes, so we register both paths.
+// These reuse the same handlers registered above via a simple rewrite trick:
+// we strip the trailing slash and let the app re-dispatch internally.
+mcpRelayRoutes.on(['GET', 'POST', 'DELETE'], '/:deviceId/sse/', async (c) => {
+  // Rewrite to non-trailing-slash path and re-dispatch
+  const deviceId = c.req.param('deviceId');
+  const method = c.req.method;
+  const proto = c.req.header('x-forwarded-proto') || 'https';
+  const host = c.req.header('x-forwarded-host') || c.req.header('host') || 'localhost';
+  const url = `${proto}://${host}/mcp/${deviceId}/sse`;
+  return c.redirect(url, 307);
+});
+
 /**
  * Handle incoming WebSocket messages from a desktop app.
  * Called by the WebSocket server handler in index.ts.
