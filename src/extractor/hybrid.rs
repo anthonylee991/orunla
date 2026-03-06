@@ -78,7 +78,7 @@ fn spans_overlap(a: (usize, usize), b: (usize, usize)) -> bool {
     let b_len = b.1 - b.0;
 
     // If overlap is >50% of either span, consider them overlapping
-    overlap_len * 2 > a_len || overlap_len * 2 > b_len
+    overlap_len * 2 >= a_len || overlap_len * 2 >= b_len
 }
 
 /// Check if two triplets are semantically similar
