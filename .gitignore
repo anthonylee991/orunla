@@ -20,6 +20,7 @@ nul
 .agent/
 artifacts/
 .cgc/
+.claude/
 
 # OS
 .DS_Store
