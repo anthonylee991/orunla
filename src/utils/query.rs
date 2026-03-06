@@ -1,5 +1,4 @@
 /// Query expansion and stemming utilities for improved recall.
-
 use std::collections::HashSet;
 
 /// Simple English stemmer that removes common suffixes.
@@ -25,63 +24,63 @@ pub fn stem_word(word: &str) -> String {
     // Order matters - check longer suffixes first
     let suffixes = [
         // Doubled consonant + ing
-        ("tting", "t"),     // setting -> set
-        ("nning", "n"),     // running -> run
-        ("rring", "r"),     // occurring -> occur
-        ("pping", "p"),     // mapping -> map
-        ("gging", "g"),     // logging -> log
-        ("dding", "d"),     // adding -> add
-        ("bbing", "b"),     // grabbing -> grab
-        ("mming", "m"),     // programming -> program
+        ("tting", "t"), // setting -> set
+        ("nning", "n"), // running -> run
+        ("rring", "r"), // occurring -> occur
+        ("pping", "p"), // mapping -> map
+        ("gging", "g"), // logging -> log
+        ("dding", "d"), // adding -> add
+        ("bbing", "b"), // grabbing -> grab
+        ("mming", "m"), // programming -> program
         // Long suffixes
-        ("ization", ""),    // organization -> organ
-        ("isation", ""),    // organisation -> organ
-        ("ational", ""),    // organizational -> organiz
-        ("ation", ""),      // organization -> organiz
-        ("ition", ""),      // definition -> defin
-        ("ement", ""),      // management -> manag
-        ("erence", "er"),   // preference -> prefer (special case)
-        ("ence", ""),       // violence -> violen
-        ("ance", ""),       // performance -> perform
-        ("ment", ""),       // development -> develop
-        ("ness", ""),       // darkness -> dark
-        ("ying", "y"),      // studying -> study
-        ("ting", "t"),      // setting -> set
-        ("ning", "n"),      // running -> run
-        ("ring", "r"),      // preferring -> prefer
-        ("zing", ""),       // organizing -> organiz
-        ("ling", "l"),      // controlling -> control
-        ("ding", "d"),      // adding -> add
-        ("ging", "g"),      // logging -> log
-        ("ping", "p"),      // mapping -> map
-        ("bing", "b"),      // grabbing -> grab
-        ("ming", "m"),      // programming -> program
-        ("ible", ""),       // possible -> poss
-        ("able", ""),       // comfortable -> comfort
-        ("tion", ""),       // action -> act
-        ("sion", ""),       // discussion -> discus
-        ("ious", ""),       // various -> var
-        ("eous", ""),       // gorgeous -> gorg
-        ("place", ""),      // workplace -> work
-        ("ful", ""),        // helpful -> help
-        ("ive", ""),        // active -> act
-        ("ing", ""),        // working -> work
-        ("ies", "y"),       // studies -> study
-        ("ied", "y"),       // studied -> study
-        ("ers", ""),        // workers -> work
-        ("est", ""),        // fastest -> fast
-        ("ess", ""),        // actress -> actr
-        ("dom", ""),        // freedom -> free
-        ("ity", ""),        // activity -> activ
-        ("ure", ""),        // pressure -> press
-        ("ous", ""),        // famous -> fam
-        ("ish", ""),        // stylish -> styl
-        ("ed", ""),         // worked -> work
-        ("er", ""),         // worker -> work
-        ("es", ""),         // boxes -> box
-        ("ly", ""),         // quickly -> quick
-        ("'s", ""),         // user's -> user
-        ("s", ""),          // works -> work
+        ("ization", ""),  // organization -> organ
+        ("isation", ""),  // organisation -> organ
+        ("ational", ""),  // organizational -> organiz
+        ("ation", ""),    // organization -> organiz
+        ("ition", ""),    // definition -> defin
+        ("ement", ""),    // management -> manag
+        ("erence", "er"), // preference -> prefer (special case)
+        ("ence", ""),     // violence -> violen
+        ("ance", ""),     // performance -> perform
+        ("ment", ""),     // development -> develop
+        ("ness", ""),     // darkness -> dark
+        ("ying", "y"),    // studying -> study
+        ("ting", "t"),    // setting -> set
+        ("ning", "n"),    // running -> run
+        ("ring", "r"),    // preferring -> prefer
+        ("zing", ""),     // organizing -> organiz
+        ("ling", "l"),    // controlling -> control
+        ("ding", "d"),    // adding -> add
+        ("ging", "g"),    // logging -> log
+        ("ping", "p"),    // mapping -> map
+        ("bing", "b"),    // grabbing -> grab
+        ("ming", "m"),    // programming -> program
+        ("ible", ""),     // possible -> poss
+        ("able", ""),     // comfortable -> comfort
+        ("tion", ""),     // action -> act
+        ("sion", ""),     // discussion -> discus
+        ("ious", ""),     // various -> var
+        ("eous", ""),     // gorgeous -> gorg
+        ("place", ""),    // workplace -> work
+        ("ful", ""),      // helpful -> help
+        ("ive", ""),      // active -> act
+        ("ing", ""),      // working -> work
+        ("ies", "y"),     // studies -> study
+        ("ied", "y"),     // studied -> study
+        ("ers", ""),      // workers -> work
+        ("est", ""),      // fastest -> fast
+        ("ess", ""),      // actress -> actr
+        ("dom", ""),      // freedom -> free
+        ("ity", ""),      // activity -> activ
+        ("ure", ""),      // pressure -> press
+        ("ous", ""),      // famous -> fam
+        ("ish", ""),      // stylish -> styl
+        ("ed", ""),       // worked -> work
+        ("er", ""),       // worker -> work
+        ("es", ""),       // boxes -> box
+        ("ly", ""),       // quickly -> quick
+        ("'s", ""),       // user's -> user
+        ("s", ""),        // works -> work
     ];
 
     for (suffix, replacement) in suffixes {
@@ -109,35 +108,35 @@ pub fn expand_synonyms(word: &str) -> Vec<String> {
         ("work", &["job", "employ", "occupation"]),
         ("job", &["work", "employ", "occupation"]),
         ("employ", &["work", "job"]),
-
         // Preferences
-        ("preference", &["prefer", "like", "want", "favorite", "favourite"]),
-        ("prefer", &["like", "want", "favorite", "favourite", "preference"]),
+        (
+            "preference",
+            &["prefer", "like", "want", "favorite", "favourite"],
+        ),
+        (
+            "prefer",
+            &["like", "want", "favorite", "favourite", "preference"],
+        ),
         ("favorite", &["prefer", "like", "favourite", "best"]),
         ("favourite", &["prefer", "like", "favorite", "best"]),
         ("like", &["prefer", "enjoy", "love"]),
-
         // Location
         ("location", &["place", "live", "city", "address", "where"]),
         ("live", &["location", "reside", "home", "city"]),
         ("home", &["live", "house", "residence"]),
         ("where", &["location", "place"]),
-
         // Identity
         ("name", &["called", "named", "identity"]),
         ("who", &["person", "name", "identity"]),
-
         // Technical
         ("api", &["key", "token", "secret"]),
         ("database", &["db", "sql", "storage"]),
         ("url", &["link", "address", "endpoint"]),
         ("port", &["server", "host"]),
-
         // Relationships
         ("manager", &["boss", "supervisor", "lead"]),
         ("boss", &["manager", "supervisor"]),
         ("team", &["group", "coworker", "colleague"]),
-
         // Common verbs (stem forms)
         ("use", &["using", "used", "utilize"]),
         ("create", &["make", "build", "generate"]),
@@ -172,18 +171,18 @@ pub fn expand_query(query: &str) -> Vec<String> {
 
     // Skip common stop words
     let stop_words: HashSet<&str> = [
-        "the", "a", "an", "is", "are", "was", "were", "be", "been", "being",
-        "have", "has", "had", "do", "does", "did", "will", "would", "could",
-        "should", "may", "might", "must", "shall", "can", "to", "of", "in",
-        "for", "on", "with", "at", "by", "from", "as", "into", "through",
-        "that", "which", "who", "whom", "this", "these", "those", "it",
-        "its", "i", "me", "my", "you", "your", "he", "him", "his", "she",
-        "her", "we", "us", "our", "they", "them", "their", "what", "all",
-        "any", "both", "each", "more", "most", "other", "some", "such",
-        "and", "but", "or", "so", "if", "then", "because", "about", "up",
-        "look", "find", "get", "tell", "show", "give", "know", "mention",
-        "memory", "memories", "remember", "recall",
-    ].iter().cloned().collect();
+        "the", "a", "an", "is", "are", "was", "were", "be", "been", "being", "have", "has", "had",
+        "do", "does", "did", "will", "would", "could", "should", "may", "might", "must", "shall",
+        "can", "to", "of", "in", "for", "on", "with", "at", "by", "from", "as", "into", "through",
+        "that", "which", "who", "whom", "this", "these", "those", "it", "its", "i", "me", "my",
+        "you", "your", "he", "him", "his", "she", "her", "we", "us", "our", "they", "them",
+        "their", "what", "all", "any", "both", "each", "more", "most", "other", "some", "such",
+        "and", "but", "or", "so", "if", "then", "because", "about", "up", "look", "find", "get",
+        "tell", "show", "give", "know", "mention", "memory", "memories", "remember", "recall",
+    ]
+    .iter()
+    .cloned()
+    .collect();
 
     for word in words {
         let lower = word.to_lowercase();

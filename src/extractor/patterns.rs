@@ -398,9 +398,9 @@ impl PatternMatcher {
             for caps in pattern.regex.captures_iter(text) {
                 if let Some(triplet) = (pattern.extractor)(&caps, text) {
                     // Avoid duplicate spans
-                    let dominated = seen_spans.iter().any(|(s, e)| {
-                        triplet.source_span.0 >= *s && triplet.source_span.1 <= *e
-                    });
+                    let dominated = seen_spans
+                        .iter()
+                        .any(|(s, e)| triplet.source_span.0 >= *s && triplet.source_span.1 <= *e);
                     if !dominated {
                         seen_spans.push(triplet.source_span);
                         triplets.push(triplet);

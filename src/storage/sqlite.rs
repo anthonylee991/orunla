@@ -29,8 +29,9 @@ fn parse_date(s: &str) -> chrono::DateTime<chrono::Utc> {
         .map(|dt| dt.with_timezone(&chrono::Utc))
         .or_else(|_| {
             // Try ISO 8601 without 'Z'
-            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f")
-                .map(|dt| chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc))
+            chrono::NaiveDateTime::parse_from_str(s, "%Y-%m-%dT%H:%M:%S%.f").map(|dt| {
+                chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc)
+            })
         })
         .unwrap_or_else(|_| {
             // Fallback to Unix Epoch if all else fails, to avoid "now" which bypasses decay checks
@@ -194,7 +195,8 @@ impl GraphStore for SqliteStorage {
 
     fn list_nodes(&self) -> Result<Vec<Node>> {
         let conn = self.get_connection()?;
-        let mut stmt = conn.prepare("SELECT id, label, node_type, created_at, metadata FROM nodes")?;
+        let mut stmt =
+            conn.prepare("SELECT id, label, node_type, created_at, metadata FROM nodes")?;
         let node_iter = stmt.query_map([], |row| {
             let node_type_str: String = row.get(2)?;
             let node_type: NodeType = serde_json::from_str(&format!("\"{}\"", node_type_str))
@@ -351,7 +353,7 @@ impl GraphStore for SqliteStorage {
         Ok(None)
     }
     fn search_edges(&self, query: &str, limit: usize) -> Result<Vec<Edge>> {
-        use crate::utils::query::{expand_query, build_fts_query};
+        use crate::utils::query::{build_fts_query, expand_query};
 
         let conn = self.get_connection()?;
 
@@ -533,11 +535,11 @@ impl GraphStore for SqliteStorage {
         // Find matching edges first
         let matching = self.search_edges(query, 1000)?;
         let count = matching.len();
-        
+
         for edge in matching {
             self.delete_edge(&edge.id)?;
         }
-        
+
         Ok(count)
     }
 
@@ -555,14 +557,14 @@ impl GraphStore for SqliteStorage {
     fn hard_gc(&mut self, threshold: f32) -> Result<usize> {
         let now = chrono::Utc::now();
         let mut edges_to_delete = Vec::new();
-        
+
         {
             let conn = self.get_connection()?;
             let mut stmt = conn.prepare("SELECT id, source_id, target_id, predicate, created_at, last_accessed, access_count, source_text, ext_source_id, confidence FROM edges")?;
             let edge_iter = stmt.query_map([], |row| {
                 let created_at_str: String = row.get(4)?;
                 let last_accessed_str: String = row.get(5)?;
-                
+
                 let created_at = parse_date(&created_at_str);
                 let last_accessed = parse_date(&last_accessed_str);
 
@@ -593,7 +595,7 @@ impl GraphStore for SqliteStorage {
         for id in edges_to_delete {
             self.delete_edge(&id)?;
         }
-        
+
         Ok(count)
     }
 
@@ -601,8 +603,14 @@ impl GraphStore for SqliteStorage {
         let conn = self.get_connection()?;
 
         // Rebind edges
-        conn.execute("UPDATE edges SET source_id = ?1 WHERE source_id = ?2", [winner_id, loser_id])?;
-        conn.execute("UPDATE edges SET target_id = ?1 WHERE target_id = ?2", [winner_id, loser_id])?;
+        conn.execute(
+            "UPDATE edges SET source_id = ?1 WHERE source_id = ?2",
+            [winner_id, loser_id],
+        )?;
+        conn.execute(
+            "UPDATE edges SET target_id = ?1 WHERE target_id = ?2",
+            [winner_id, loser_id],
+        )?;
 
         // Delete loser node
         conn.execute("DELETE FROM nodes WHERE id = ?1", [loser_id])?;
@@ -610,4 +618,3 @@ impl GraphStore for SqliteStorage {
         Ok(())
     }
 }
-

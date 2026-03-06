@@ -30,8 +30,8 @@ pub fn normalize_predicate(predicate: &str) -> String {
 
     match trimmed {
         "co-founded" | "established" => "founded".to_string(),
-        "heads" | "runs" | "ceo of" | "cto of" | "coo of" | "cfo of"
-        | "director of" | "president of" | "chairman of" => "leads".to_string(),
+        "heads" | "runs" | "ceo of" | "cto of" | "coo of" | "cfo of" | "director of"
+        | "president of" | "chairman of" => "leads".to_string(),
         "works for" | "employed at" | "employed by" => "works at".to_string(),
         "supervises" | "oversees" => "manages".to_string(),
         "based in" | "headquartered in" => "located in".to_string(),

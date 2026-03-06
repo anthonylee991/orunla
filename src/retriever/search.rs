@@ -22,7 +22,7 @@ impl<'a> Retriever for HybridRetriever<'a> {
         let mut memories = Vec::new();
         for edge in edges {
             let strength = calculate_strength(&edge, now);
-            
+
             if edge.confidence >= request.min_confidence && strength >= request.min_strength {
                 let subject_node = self.store.get_node(&edge.source)?.unwrap_or_else(|| {
                     crate::graph::Node::new("Unknown".to_string(), crate::graph::NodeType::Unknown)

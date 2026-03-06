@@ -15,7 +15,7 @@ use axum::{
 use serde::Deserialize;
 use serde_json::{json, Value};
 use std::collections::HashMap;
-use std::net::{SocketAddr, IpAddr};
+use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 use tokio::sync::Mutex;
@@ -130,7 +130,11 @@ async fn auth_middleware(
     Err(StatusCode::UNAUTHORIZED)
 }
 
-pub async fn start_server(storage: SqliteStorage, port: u16, api_key: Option<String>) -> anyhow::Result<()> {
+pub async fn start_server(
+    storage: SqliteStorage,
+    port: u16,
+    api_key: Option<String>,
+) -> anyhow::Result<()> {
     println!("Initializing hybrid extractor (Patterns + GliNER)...");
     let extractor = Arc::new(HybridExtractor::new()?);
     let rate_limiter = Arc::new(RateLimiter::new(60)); // 60 requests per minute per IP
@@ -477,7 +481,9 @@ pub async fn delete_memory_handler(
     match storage.delete_edge(&id) {
         Ok(_) => {
             let orphaned = storage.cleanup_orphaned_nodes().unwrap_or(0);
-            Json(json!({ "status": "ok", "message": format!("Memory deleted. Cleaned up {} orphaned nodes.", orphaned) }))
+            Json(
+                json!({ "status": "ok", "message": format!("Memory deleted. Cleaned up {} orphaned nodes.", orphaned) }),
+            )
         }
         Err(_e) => {
             eprintln!("Delete error: {}", _e); // Log server-side only

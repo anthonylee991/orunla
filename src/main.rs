@@ -152,8 +152,15 @@ async fn main() -> anyhow::Result<()> {
             }
             println!("Total: {} triplets from file", total);
         }
-        cli::Commands::Recall { query, limit, min_strength } => {
-            println!("Recalling memories for: {} (min_strength: {})", query, min_strength);
+        cli::Commands::Recall {
+            query,
+            limit,
+            min_strength,
+        } => {
+            println!(
+                "Recalling memories for: {} (min_strength: {})",
+                query, min_strength
+            );
             let retriever = HybridRetriever::new(&storage);
             let request = RecallRequest {
                 query,
@@ -165,7 +172,11 @@ async fn main() -> anyhow::Result<()> {
             for m in response.memories {
                 println!(
                     "- {} -> {} -> {} (strength: {:.2}, conf: {:.2})",
-                    m.subject_node.label, m.edge.predicate, m.object_node.label, m.relevance_score, m.edge.confidence
+                    m.subject_node.label,
+                    m.edge.predicate,
+                    m.object_node.label,
+                    m.relevance_score,
+                    m.edge.confidence
                 );
             }
         }
@@ -203,10 +214,16 @@ async fn main() -> anyhow::Result<()> {
         cli::Commands::Dedup => {
             println!("Running Node Deduplication...");
             let nodes = storage.list_nodes()?;
-            let mut normalized_map: std::collections::HashMap<String, Vec<Node>> = std::collections::HashMap::new();
+            let mut normalized_map: std::collections::HashMap<String, Vec<Node>> =
+                std::collections::HashMap::new();
 
             for node in nodes {
-                let norm = node.label.to_lowercase().chars().filter(|c| c.is_alphanumeric()).collect::<String>();
+                let norm = node
+                    .label
+                    .to_lowercase()
+                    .chars()
+                    .filter(|c| c.is_alphanumeric())
+                    .collect::<String>();
                 normalized_map.entry(norm).or_default().push(node);
             }
 
@@ -215,7 +232,10 @@ async fn main() -> anyhow::Result<()> {
                 if group.len() > 1 && !norm.is_empty() {
                     let winner = &group[0];
                     for loser in &group[1..] {
-                        println!("Merging '{}' (id: {}) -> '{}' (id: {})", loser.label, loser.id, winner.label, winner.id);
+                        println!(
+                            "Merging '{}' (id: {}) -> '{}' (id: {})",
+                            loser.label, loser.id, winner.label, winner.id
+                        );
                         storage.merge_nodes(&winner.id, &loser.id)?;
                         merged_count += 1;
                     }
@@ -223,7 +243,11 @@ async fn main() -> anyhow::Result<()> {
             }
             println!("Deduplication complete. Merged {} nodes.", merged_count);
         }
-        cli::Commands::Benchmark { cases, verbose, mode } => {
+        cli::Commands::Benchmark {
+            cases,
+            verbose,
+            mode,
+        } => {
             println!("Loading test cases from: {}", cases.display());
             let test_cases = benchmark::load_test_cases(&cases)?;
 

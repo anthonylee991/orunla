@@ -308,7 +308,12 @@ pub fn run_benchmark(
     cases: &[TestCase],
     verbose: bool,
 ) -> Result<BenchmarkResult> {
-    run_benchmark_with("GliNER", |text| extractor.extract_triplets(text), cases, verbose)
+    run_benchmark_with(
+        "GliNER",
+        |text| extractor.extract_triplets(text),
+        cases,
+        verbose,
+    )
 }
 
 /// Print the benchmark summary
@@ -352,7 +357,10 @@ pub fn print_summary(result: &BenchmarkResult) {
 /// Print comparison between two benchmark results
 pub fn print_comparison(before: &BenchmarkResult, after: &BenchmarkResult) {
     println!("\n{}", "=".repeat(60));
-    println!("COMPARISON: {} vs {}", before.extractor_name, after.extractor_name);
+    println!(
+        "COMPARISON: {} vs {}",
+        before.extractor_name, after.extractor_name
+    );
     println!("{}", "=".repeat(60));
 
     let precision_delta = (after.precision - before.precision) * 100.0;

@@ -2,6 +2,9 @@
 //!
 //! Contains the MCPServer struct with all tool handlers, and the SSE transport layer.
 
+use crate::graph::{Edge, GraphStore, Node, NodeType};
+use crate::retriever::{search::HybridRetriever, RecallRequest, Retriever};
+use crate::storage::sqlite::SqliteStorage;
 use anyhow::Result;
 use axum::{
     extract::{Query, State as AxumState},
@@ -14,9 +17,6 @@ use axum::{
     Json, Router,
 };
 use futures::stream::Stream;
-use crate::graph::{Edge, GraphStore, Node, NodeType};
-use crate::retriever::{search::HybridRetriever, RecallRequest, Retriever};
-use crate::storage::sqlite::SqliteStorage;
 use serde::{Deserialize, Serialize};
 use serde_json::json;
 use std::collections::HashMap;
@@ -666,7 +666,11 @@ pub async fn sse_handler(
     let session_id = uuid::Uuid::new_v4().to_string();
     let (tx, rx) = mpsc::unbounded_channel::<String>();
 
-    state.sessions.lock().await.insert(session_id.clone(), tx.clone());
+    state
+        .sessions
+        .lock()
+        .await
+        .insert(session_id.clone(), tx.clone());
 
     let endpoint_url = format!("/message?session_id={}", session_id);
     let _ = tx.send(format!("__endpoint__{}", endpoint_url));
@@ -808,7 +812,10 @@ pub async fn run_sse(server: MCPServer, port: u16) -> Result<()> {
 
     let addr = std::net::SocketAddr::from(([127, 0, 0, 1], port));
     eprintln!("[orunla] SSE transport listening on http://{}", addr);
-    eprintln!("[orunla] Connect your MCP client to http://localhost:{}/sse", port);
+    eprintln!(
+        "[orunla] Connect your MCP client to http://localhost:{}/sse",
+        port
+    );
 
     let listener = tokio::net::TcpListener::bind(addr).await?;
     axum::serve(listener, app.into_make_service()).await?;

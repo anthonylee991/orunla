@@ -5,34 +5,87 @@ use gliner::model::{input::text::TextInput, params::Parameters, pipeline::span::
 
 /// Known relation verbs for extracting predicates from text between entities.
 const RELATION_VERBS: &[&str] = &[
-    "works", "founded", "leads", "manages", "joined", "acquired", "owns",
-    "based", "located", "headquartered", "reports", "partnered", "uses",
-    "built", "developed", "created", "provides", "competes", "invested",
-    "launched", "serves", "appointed", "hired", "employs", "supervises",
-    "sold", "purchased", "ordered", "shipped", "reviewed", "paid",
-    "governs", "applies", "requires", "depends", "integrates", "runs",
-    "heads", "oversees", "established", "operates", "supports", "maintains",
-    "produces", "manufactures", "supplies", "distributes", "sponsors",
+    "works",
+    "founded",
+    "leads",
+    "manages",
+    "joined",
+    "acquired",
+    "owns",
+    "based",
+    "located",
+    "headquartered",
+    "reports",
+    "partnered",
+    "uses",
+    "built",
+    "developed",
+    "created",
+    "provides",
+    "competes",
+    "invested",
+    "launched",
+    "serves",
+    "appointed",
+    "hired",
+    "employs",
+    "supervises",
+    "sold",
+    "purchased",
+    "ordered",
+    "shipped",
+    "reviewed",
+    "paid",
+    "governs",
+    "applies",
+    "requires",
+    "depends",
+    "integrates",
+    "runs",
+    "heads",
+    "oversees",
+    "established",
+    "operates",
+    "supports",
+    "maintains",
+    "produces",
+    "manufactures",
+    "supplies",
+    "distributes",
+    "sponsors",
 ];
 
 /// Prepositions that attach to verbs to form compound predicates.
-const PREPOSITIONS: &[&str] = &[
-    "at", "in", "for", "with", "to", "by", "of", "from", "on",
-];
+const PREPOSITIONS: &[&str] = &["at", "in", "for", "with", "to", "by", "of", "from", "on"];
 
 /// Pronouns and noise words that should never be entities.
 const GARBAGE_WORDS: &[&str] = &[
-    "our", "we", "us", "they", "my", "your", "his", "her", "i", "me",
-    "it", "this", "that", "these", "those", "its", "their", "he", "she",
-    "who", "which", "what", "where", "when", "how", "why",
+    "our", "we", "us", "they", "my", "your", "his", "her", "i", "me", "it", "this", "that",
+    "these", "those", "its", "their", "he", "she", "who", "which", "what", "where", "when", "how",
+    "why",
 ];
 
 /// Section header words that GliNER sometimes picks up as entities.
 const SECTION_HEADERS: &[&str] = &[
-    "overview", "summary", "conclusion", "introduction", "background",
-    "features", "pricing", "security", "details", "description",
-    "requirements", "objectives", "scope", "methodology", "results",
-    "abstract", "appendix", "references", "contents",
+    "overview",
+    "summary",
+    "conclusion",
+    "introduction",
+    "background",
+    "features",
+    "pricing",
+    "security",
+    "details",
+    "description",
+    "requirements",
+    "objectives",
+    "scope",
+    "methodology",
+    "results",
+    "abstract",
+    "appendix",
+    "references",
+    "contents",
 ];
 
 /// Check if an entity text is garbage that should be filtered out.
@@ -65,7 +118,10 @@ fn extract_verb_predicate(between_text: &str) -> String {
 
     for (i, word) in words.iter().enumerate() {
         let lower = word.to_lowercase();
-        if RELATION_VERBS.iter().any(|v| lower == *v || lower.ends_with(v)) {
+        if RELATION_VERBS
+            .iter()
+            .any(|v| lower == *v || lower.ends_with(v))
+        {
             // Check if next word is a preposition to attach
             if i + 1 < words.len() {
                 let next_lower = words[i + 1].to_lowercase();

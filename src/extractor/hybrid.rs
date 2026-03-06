@@ -1,4 +1,6 @@
-use crate::extractor::{gliner::GlinerExtractor, normalize_predicate, patterns::PatternMatcher, Triplet};
+use crate::extractor::{
+    gliner::GlinerExtractor, normalize_predicate, patterns::PatternMatcher, Triplet,
+};
 use anyhow::Result;
 
 /// Hybrid extractor that combines GliNER neural extraction with pattern-based rules.
@@ -32,8 +34,7 @@ impl HybridExtractor {
         for gt in gliner_triplets {
             // Check if this triplet overlaps significantly with any pattern triplet
             let dominated = pattern_triplets.iter().any(|pt| {
-                spans_overlap(pt.source_span, gt.source_span)
-                    || triplets_similar(pt, &gt)
+                spans_overlap(pt.source_span, gt.source_span) || triplets_similar(pt, &gt)
             });
 
             if !dominated {
