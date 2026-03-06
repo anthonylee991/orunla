@@ -38,7 +38,7 @@ curl http://localhost:8080/health
 
 **Response:**
 ```json
-{ "status": "ok", "version": "0.5.0" }
+{ "status": "ok", "version": "0.5.1" }
 ```
 
 ---

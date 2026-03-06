@@ -76,7 +76,7 @@ openapi: 3.0.0
 info:
   title: Orunla Memory API
   description: Persistent AI memory system
-  version: 0.5.0
+  version: 0.5.1
 servers:
   - url: http://localhost:8080
     description: Orunla local server

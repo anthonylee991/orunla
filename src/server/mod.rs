@@ -197,7 +197,7 @@ pub async fn start_server(
 }
 
 pub async fn health_check() -> Json<Value> {
-    Json(json!({ "status": "ok", "version": "0.5.0" }))
+    Json(json!({ "status": "ok", "version": "0.5.1" }))
 }
 
 pub async fn get_stats(State(state): State<Arc<ServerState>>) -> Json<Value> {
