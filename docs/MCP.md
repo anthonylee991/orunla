@@ -127,6 +127,59 @@ On macOS, add `"env": { "ORT_DYLIB_PATH": "/path/to/libonnxruntime.dylib" }`.
 
 ---
 
+## SSE Transport (Browser Agents & Remote Access)
+
+The MCP server also supports **SSE (Server-Sent Events)** transport, which lets browser-based agents and remote clients connect over HTTP instead of stdio.
+
+### Start the SSE Server
+
+```bash
+# SSE-only (MCP endpoints at /sse and /message)
+orunla_mcp --transport sse --port 8080
+
+# Unified mode: MCP SSE + REST API on the same port
+orunla_mcp --transport sse --port 8080 --with-api
+
+# With API key protection (recommended for any network exposure)
+orunla_mcp --transport sse --port 8080 --with-api --api-key "your-secret-key"
+```
+
+### Connect Browser-Based MCP Clients
+
+**Claude Browser (claude.ai):**
+1. Start the SSE server (see above)
+2. Expose via tunnel:
+   ```bash
+   # Cloudflare Tunnel (free)
+   cloudflared tunnel --url http://localhost:8080
+
+   # Or ngrok
+   ngrok http 8080
+   ```
+3. In Claude browser: **Settings > Integrations > Add**
+4. Paste your tunnel URL with `/sse` appended (e.g., `https://your-tunnel.trycloudflare.com/sse`)
+
+**ChatGPT and other REST-based agents:** Use the unified mode (`--with-api`) and connect via REST endpoints. See `AI_SETUP.md` for OpenAPI spec and setup instructions.
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/sse` | GET | SSE event stream (MCP client connects here) |
+| `/message` | POST | JSON-RPC messages from MCP client |
+| `/health` | GET | Health check (unified mode only) |
+| `/ingest` | POST | Save memory via REST (unified mode only) |
+| `/recall` | POST | Search memories via REST (unified mode only) |
+
+### Security
+
+When exposing Orunla over a network (even via tunnel):
+- **Always use `--api-key`** to protect REST endpoints
+- MCP SSE endpoints use the MCP protocol's own session management
+- The server binds to `127.0.0.1` by default (localhost only) — use a tunnel for remote access rather than binding to `0.0.0.0`
+
+---
+
 ## Important Notes
 
 - **Windows:** The `onnxruntime.dll` must be in the same folder as `orunla_mcp.exe`.
