@@ -33,7 +33,7 @@ fn parse_date(s: &str) -> chrono::DateTime<chrono::Utc> {
                 chrono::DateTime::<chrono::Utc>::from_naive_utc_and_offset(dt, chrono::Utc)
             })
         })
-        .unwrap_or_else(|_| {
+        .unwrap_or({
             // Fallback to Unix Epoch if all else fails, to avoid "now" which bypasses decay checks
             chrono::DateTime::<chrono::Utc>::UNIX_EPOCH
         })
@@ -422,10 +422,8 @@ impl GraphStore for SqliteStorage {
                 });
 
                 if let Ok(iter) = fts_iter {
-                    for res in iter {
-                        if let Ok(edge) = res {
-                            results.insert(edge.id.clone(), edge);
-                        }
+                    for edge in iter.flatten() {
+                        results.insert(edge.id.clone(), edge);
                     }
                 }
 
@@ -459,11 +457,9 @@ impl GraphStore for SqliteStorage {
                                 confidence: row.get(9)?,
                             })
                         })?;
-                        for res in iter {
-                            if let Ok(edge) = res {
-                                if !results.contains_key(&edge.id) {
-                                    results.insert(edge.id.clone(), edge);
-                                }
+                        for edge in iter.flatten() {
+                            if !results.contains_key(&edge.id) {
+                                results.insert(edge.id.clone(), edge);
                             }
                         }
                     }
@@ -501,11 +497,9 @@ impl GraphStore for SqliteStorage {
                                 confidence: row.get(9)?,
                             })
                         })?;
-                        for res in iter {
-                            if let Ok(edge) = res {
-                                if !results.contains_key(&edge.id) {
-                                    results.insert(edge.id.clone(), edge);
-                                }
+                        for edge in iter.flatten() {
+                            if !results.contains_key(&edge.id) {
+                                results.insert(edge.id.clone(), edge);
                             }
                         }
                     }
@@ -551,7 +545,7 @@ impl GraphStore for SqliteStorage {
              AND id NOT IN (SELECT target_id FROM edges)",
             [],
         )?;
-        Ok(count as usize)
+        Ok(count)
     }
 
     fn hard_gc(&mut self, threshold: f32) -> Result<usize> {

@@ -280,7 +280,7 @@ async fn main() -> anyhow::Result<()> {
                     )?;
                     benchmark::print_summary(&result);
                 }
-                "compare" | _ => {
+                _ => {
                     println!("Running comparison benchmark...\n");
 
                     println!("=== GliNER Extractor ===");

@@ -3,7 +3,7 @@ pub struct Tokenizer;
 impl Tokenizer {
     pub fn tokenize_sentences(text: &str) -> Vec<String> {
         // Very basic sentence splitter
-        text.split_inclusive(|c| c == '.' || c == '!' || c == '?')
+        text.split_inclusive(['.', '!', '?'])
             .map(|s| s.trim().to_string())
             .filter(|s| !s.is_empty())
             .collect()

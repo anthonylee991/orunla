@@ -8,7 +8,7 @@ use axum::{
     extract::{ConnectInfo, Multipart, Path, Request, State},
     http::{HeaderMap, StatusCode},
     middleware::{self, Next},
-    response::{IntoResponse, Response},
+    response::Response,
     routing::{delete, get, post},
     Json, Router,
 };
@@ -17,7 +17,7 @@ use serde_json::{json, Value};
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use tokio::sync::Mutex;
 
 // Simple token bucket rate limiter
@@ -109,8 +109,7 @@ async fn auth_middleware(
     // Check Authorization header (Bearer token)
     if let Some(auth_header) = headers.get("authorization") {
         if let Ok(auth_str) = auth_header.to_str() {
-            if auth_str.starts_with("Bearer ") {
-                let token = &auth_str[7..];
+            if let Some(token) = auth_str.strip_prefix("Bearer ") {
                 if token == api_key {
                     return Ok(next.run(request).await);
                 }
@@ -224,9 +223,11 @@ const MAX_FILE_SIZE: usize = 50_000_000; // 50MB
 #[derive(Deserialize)]
 pub(crate) struct IngestPayload {
     text: String,
+    #[allow(dead_code)]
     source_id: Option<String>,
 }
 
+#[allow(private_interfaces)]
 pub async fn ingest_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<IngestPayload>,
@@ -365,11 +366,11 @@ pub async fn ingest_file_handler(
     };
 
     let mut total_added = 0;
-    let source_name = file_name
+    let _source_name = file_name
         .clone()
         .unwrap_or_else(|| "uploaded_file".to_string());
 
-    for (i, (chunk, chunk_type)) in chunks.iter().enumerate() {
+    for (i, (chunk, _chunk_type)) in chunks.iter().enumerate() {
         let triplets = match extractor.extract_triplets(chunk) {
             Ok(t) => t,
             Err(e) => {
@@ -419,6 +420,7 @@ pub(crate) struct RecallPayload {
     min_strength: Option<f32>,
 }
 
+#[allow(private_interfaces)]
 pub async fn recall_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<RecallPayload>,
@@ -497,6 +499,7 @@ pub(crate) struct PurgePayload {
     query: String,
 }
 
+#[allow(private_interfaces)]
 pub async fn purge_topic_handler(
     State(state): State<Arc<ServerState>>,
     Json(payload): Json<PurgePayload>,

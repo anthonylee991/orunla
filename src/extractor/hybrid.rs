@@ -23,7 +23,7 @@ impl HybridExtractor {
     /// Deduplicates results based on span overlap.
     pub fn extract_triplets(&self, text: &str) -> Result<Vec<Triplet>> {
         // First, run pattern matching (higher precision for conversational text)
-        let mut pattern_triplets = self.patterns.extract_triplets(text);
+        let pattern_triplets = self.patterns.extract_triplets(text);
 
         // Then, run GliNER for named entity relationships
         let gliner_triplets = self.gliner.extract_triplets(text)?;

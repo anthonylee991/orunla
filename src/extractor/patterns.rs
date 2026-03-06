@@ -10,6 +10,7 @@ pub struct PatternMatcher {
 struct ConversationalPattern {
     regex: Regex,
     extractor: fn(&regex::Captures, &str) -> Option<Triplet>,
+    #[allow(dead_code)]
     confidence: f32,
 }
 

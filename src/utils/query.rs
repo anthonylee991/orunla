@@ -207,7 +207,7 @@ pub fn expand_query(query: &str) -> Vec<String> {
 
     // Convert to vec and sort by length (longer = more specific = search first)
     let mut terms: Vec<String> = all_terms.into_iter().collect();
-    terms.sort_by(|a, b| b.len().cmp(&a.len()));
+    terms.sort_by_key(|b| std::cmp::Reverse(b.len()));
     terms
 }
 

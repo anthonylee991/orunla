@@ -681,7 +681,7 @@ pub async fn sse_handler(
         match stream.next().await {
             Some(data) => {
                 let event = if let Some(url) = data.strip_prefix("__endpoint__") {
-                    Event::default().event("endpoint").data(url.to_string())
+                    Event::default().event("endpoint").data(url)
                 } else {
                     Event::default().event("message").data(data)
                 };
