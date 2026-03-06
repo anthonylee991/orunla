@@ -1,12 +1,8 @@
 use orunla::extractor::gliner::GlinerExtractor;
 use orunla::graph::{Edge, GraphStore, Node, NodeType};
-use orunla::licensing::{LicenseStore, LicenseValidator, Tier};
 use orunla::mcp::MCPServer;
-use orunla::relay_client::McpRelayClient;
 use orunla::retriever::{search::HybridRetriever, RecallRequest, Retriever};
 use orunla::storage::{sqlite::SqliteStorage, AppConfig, Storage, StorageConfig};
-use orunla::sync::changelog::ChangelogStore;
-use orunla::sync::client::{SyncClient, SyncConfig};
 use orunla::utils::document::{chunk_document, parse_csv, parse_json_lines};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
@@ -17,7 +13,6 @@ use tokio::sync::Mutex;
 pub struct AppState {
     pub storage: Mutex<SqliteStorage>,
     pub extractor: Arc<GlinerExtractor>,
-    pub license_store: LicenseStore,
 }
 
 #[derive(Serialize)]
@@ -236,90 +231,19 @@ async fn purge_topic(state: State<'_, AppState>, query: String) -> Result<String
 }
 
 #[derive(Serialize)]
-pub struct LicenseStatus {
-    pub tier: String,
-    pub trial_days_remaining: Option<i64>,
-    pub sync_enabled: bool,
-    pub last_validated: String,
-}
-
-#[tauri::command]
-async fn activate_license(
-    state: State<'_, AppState>,
-    key: String,
-) -> Result<LicenseStatus, String> {
-    let validator = LicenseValidator::new();
-    let tier = validator
-        .activate(&key, &state.license_store)
-        .await
-        .map_err(|e| e.to_string())?;
-
-    Ok(LicenseStatus {
-        tier: tier.to_string(),
-        trial_days_remaining: None,
-        sync_enabled: tier.allows_sync(),
-        last_validated: chrono::Utc::now().format("%Y-%m-%d %H:%M UTC").to_string(),
-    })
-}
-
-#[tauri::command]
-async fn get_license_status(state: State<'_, AppState>) -> Result<LicenseStatus, String> {
-    let license = state
-        .license_store
-        .ensure_license()
-        .map_err(|e| e.to_string())?;
-    let tier = LicenseValidator::get_tier_local(&state.license_store).map_err(|e| e.to_string())?;
-    let trial_days = if tier == Tier::Trial {
-        LicenseValidator::trial_days_remaining(&state.license_store)
-            .map_err(|e| e.to_string())?
-    } else {
-        None
-    };
-
-    Ok(LicenseStatus {
-        tier: tier.to_string(),
-        trial_days_remaining: trial_days,
-        sync_enabled: tier.allows_sync(),
-        last_validated: license.last_validated.format("%Y-%m-%d %H:%M UTC").to_string(),
-    })
-}
-
-#[derive(Serialize)]
 pub struct ServerInfo {
     pub server_port: u16,
     pub local_mcp_url: String,
     pub local_api_url: String,
-    pub relay_url: Option<String>,
-    pub relay_api_url: Option<String>,
-    pub device_id: Option<String>,
 }
 
 #[tauri::command]
-async fn get_server_info(state: State<'_, AppState>) -> Result<ServerInfo, String> {
-    let storage = state.storage.lock().await;
-    let device_id = storage.get_device_id().ok().filter(|id| !id.is_empty());
-
+async fn get_server_info() -> Result<ServerInfo, String> {
     let port = 8080u16;
-    let relay_url = device_id.as_ref().map(|id| {
-        format!(
-            "https://orunla-production.up.railway.app/mcp/{}/sse",
-            id
-        )
-    });
-    let relay_api_url = device_id.as_ref().map(|id| {
-        format!(
-            "https://orunla-production.up.railway.app/api/{}",
-            id
-        )
-    });
-
     Ok(ServerInfo {
         server_port: port,
         local_mcp_url: format!("http://localhost:{}/sse", port),
         local_api_url: format!("http://localhost:{}", port),
-        relay_url,
-        relay_api_url,
-        device_id,
     })
 }
 
@@ -342,15 +266,12 @@ fn fix_dll_path() {
     if let Ok(exe_path) = std::env::current_exe() {
         if let Some(exe_dir) = exe_path.parent() {
             let mut possible_dlls = Vec::new();
-            //Adjacent to exe (dev or manual copy)
             possible_dlls.push(exe_dir.join("onnxruntime.dll"));
-            // Tauri v2 resources
             possible_dlls.push(exe_dir.join("resources").join("onnxruntime.dll"));
             possible_dlls.push(exe_dir.join("resources").join("resources").join("onnxruntime.dll"));
-            
+
             for dll_path in possible_dlls {
                 if dll_path.exists() {
-                    // Set DLL directory for any subsequent loads
                     if let Some(dir) = dll_path.parent() {
                         let mut wide_path: Vec<u16> = dir.to_string_lossy().encode_utf16().collect();
                         wide_path.push(0);
@@ -362,7 +283,6 @@ fn fix_dll_path() {
                         }
                     }
 
-                    // Explicitly initialize ORT using environment variables for load-dynamic
                     std::env::set_var("ORT_DYLIB_PATH", &dll_path);
                     match ort::init().commit() {
                         Ok(_) => (),
@@ -384,35 +304,6 @@ pub fn run() {
     let storage = SqliteStorage::new(config.clone());
     storage.init().expect("Failed to initialize database");
 
-    // Initialize licensing
-    let license_store = LicenseStore::new(config.path.clone());
-    let license = license_store.ensure_license().expect("Failed to initialize license");
-    if license.tier == Tier::Trial {
-        if let Some(days) = LicenseValidator::trial_days_remaining(&license_store).unwrap_or(None) {
-            eprintln!("Orunla Trial: {} days remaining.", days);
-        }
-    }
-
-    // Prepare background sync config (spawned inside setup where Tokio runtime exists)
-    let tier = LicenseValidator::get_tier_local(&license_store).unwrap_or(Tier::Free);
-    let bg_sync_config = if tier.allows_sync() && !license.license_key.is_empty() {
-        let device_id = storage.get_device_id().unwrap_or_default();
-        if !device_id.is_empty() {
-            Some((
-                SyncConfig {
-                    device_id,
-                    license_key: license.license_key.clone(),
-                    ..SyncConfig::default()
-                },
-                config.path.clone(),
-            ))
-        } else {
-            None
-        }
-    } else {
-        None
-    };
-
     println!("Initializing smart extractor (GliNER) in Tauri...");
     let extractor = Arc::new(GlinerExtractor::new().expect("Failed to initialize GliNER"));
 
@@ -420,7 +311,6 @@ pub fn run() {
         .manage(AppState {
             storage: Mutex::new(storage),
             extractor,
-            license_store,
         })
         .setup(move |app| {
             if cfg!(debug_assertions) {
@@ -431,28 +321,8 @@ pub fn run() {
                 )?;
             }
 
-            // Start background sync inside Tauri's async runtime
-            if let Some((sync_config, db_path)) = bg_sync_config {
-                tauri::async_runtime::spawn(async move {
-                    let mut interval = tokio::time::interval(std::time::Duration::from_secs(30));
-                    loop {
-                        interval.tick().await;
-                        if let Ok(sync_client) = SyncClient::new(sync_config.clone()) {
-                            let inner_config = StorageConfig { path: db_path.clone(), ..StorageConfig::default() };
-                            let mut sync_storage = SqliteStorage::new(inner_config);
-                            if sync_storage.init().is_ok() {
-                                if let Err(e) = sync_client.sync_once(&mut sync_storage).await {
-                                    eprintln!("[tauri-sync] Error: {}", e);
-                                }
-                            }
-                        }
-                    }
-                });
-            }
-
             // Start unified server (REST API + MCP SSE) in background
             let server_config = config.clone();
-            let relay_config = config.clone();
             tauri::async_runtime::spawn(async move {
                 let mcp_storage = SqliteStorage::new(server_config.clone());
                 if mcp_storage.init().is_err() {
@@ -480,34 +350,6 @@ pub fn run() {
                 }
             });
 
-            // Connect to cloud MCP relay for Claude browser access
-            tauri::async_runtime::spawn(async move {
-                let relay_storage = SqliteStorage::new(relay_config.clone());
-                if relay_storage.init().is_err() {
-                    eprintln!("[orunla] Failed to init relay storage");
-                    return;
-                }
-
-                let device_id = match relay_storage.get_device_id() {
-                    Ok(id) if !id.is_empty() => id,
-                    _ => {
-                        eprintln!("[orunla] No device_id found, skipping MCP relay");
-                        return;
-                    }
-                };
-
-                let relay_mcp_storage = SqliteStorage::new(relay_config);
-                if relay_mcp_storage.init().is_err() {
-                    eprintln!("[orunla] Failed to init relay MCP storage");
-                    return;
-                }
-                let mcp_server = MCPServer::new(relay_mcp_storage);
-
-                let client = McpRelayClient::new(device_id, mcp_server);
-                eprintln!("[orunla] MCP relay URL: {}", client.relay_sse_url());
-                client.connect_loop().await;
-            });
-
             Ok(())
         })
         .plugin(tauri_plugin_dialog::init())
@@ -518,8 +360,6 @@ pub fn run() {
             ingest_file,
             delete_memory,
             purge_topic,
-            activate_license,
-            get_license_status,
             get_server_info,
             get_api_key,
             set_api_key

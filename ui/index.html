@@ -621,27 +621,23 @@
                         </div>
                     </div>
                     <div class="server-card">
-                        <h3>Remote Access</h3>
-                        <div class="server-info-row">
-                            <span id="relay-dot" class="status-dot connecting"></span>
-                            <span id="relay-status-label" class="status-label connecting">Connecting...</span>
-                        </div>
+                        <h3>Local URLs</h3>
                         <div class="server-info-row">
                             <span class="server-info-label">MCP SSE</span>
                         </div>
                         <div class="url-row">
-                            <span id="relay-url" class="url-value">Loading...</span>
-                            <button class="copy-btn" onclick="copyUrl('relay-url')">COPY</button>
+                            <span id="local-mcp-url" class="url-value">http://localhost:8080/sse</span>
+                            <button class="copy-btn" onclick="copyUrl('local-mcp-url')">COPY</button>
                         </div>
                         <div class="server-info-row" style="margin-top: 0.5rem;">
                             <span class="server-info-label">REST API</span>
                         </div>
                         <div class="url-row">
-                            <span id="relay-api-url" class="url-value">Loading...</span>
-                            <button class="copy-btn" onclick="copyUrl('relay-api-url')">COPY</button>
+                            <span id="local-api-url" class="url-value">http://localhost:8080</span>
+                            <button class="copy-btn" onclick="copyUrl('local-api-url')">COPY</button>
                         </div>
                         <div class="server-note">
-                            MCP SSE for browser-based MCP clients (Claude.ai, ChatGPT Connector). REST API for ChatGPT Custom GPTs, n8n, Make.com, or any HTTP client. Works whenever this app is open.
+                            MCP SSE for MCP clients. REST API for ChatGPT Custom GPTs, n8n, Make.com, or any HTTP client.
                         </div>
                     </div>
                 </div>
@@ -650,7 +646,7 @@
             <div class="card">
                 <h2>API Key</h2>
                 <p style="font-size: 0.95rem; color: var(--text-muted); margin-bottom: 1rem;">
-                    Protects the REST API (local and remote). Leave blank for no authentication.
+                    Protects the REST API. Leave blank for no authentication.
                 </p>
                 <div class="input-group">
                     <input type="password" id="api-key-input" placeholder="Enter API key...">

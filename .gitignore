@@ -1,42 +1,25 @@
 # Build artifacts
 target/
-target-new/
 dist/
 node_modules/
 
-# ONNX runtime (large binary, downloaded in CI)
+# ONNX runtime (large binary, downloaded at build time)
 src-tauri/resources/onnxruntime.dll
 src-tauri/resources/libonnxruntime.dylib
 
 # Logs
 *.log
-build_*.txt
-build_*.log
-cli_build_log.txt
-final_build_log.txt
-ort_build_log.txt
-rebuild_log.txt
-ring_build_log.txt
 
 # Database
 memory.db
 
 # Test / temp files
 nul
-large_test.txt
-overlap_test.txt
-test_api.txt
-test_doc.txt
-test_main.*
-build_check.txt
-build_errors.txt
-repro_sustainability.py
-
-# Artifacts
-artifacts/
 
 # IDE / agent
 .agent/
+artifacts/
+.cgc/
 
 # OS
 .DS_Store

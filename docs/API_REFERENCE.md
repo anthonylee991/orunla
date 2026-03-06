@@ -1,21 +1,14 @@
 # Orunla REST API Reference
 
-Access your Orunla memory from any tool, automation, or AI integration through the cloud relay.
+Access your Orunla memory from any tool, automation, or AI integration.
 
-**Base URL:** Copy from the desktop app's **"Remote Access"** card. It looks like:
-```
-https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID
-```
-
-**Requirements:** The Orunla desktop app must be open for API requests to work.
-
-> Want step-by-step setup guides for ChatGPT, Claude, Gemini, or n8n? See `AI_SETUP.md`.
+**Base URL:** `http://localhost:8080` (desktop app) or `http://localhost:{port}` (CLI `serve`)
 
 ---
 
 ## Authentication
 
-If you set an API key in the desktop app's **API Key** settings panel, all requests (except health/stats) require it:
+If you set an API key (via desktop app settings or `--api-key` flag), all protected requests require it:
 
 ```
 X-API-Key: your-key
@@ -40,12 +33,12 @@ Authorization: Bearer your-key
 Check if Orunla is running.
 
 ```bash
-curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/health
+curl http://localhost:8080/health
 ```
 
 **Response:**
 ```json
-{ "status": "ok", "version": "0.4.1" }
+{ "status": "ok", "version": "0.5.0" }
 ```
 
 ---
@@ -55,7 +48,7 @@ curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/health
 Get memory database statistics.
 
 ```bash
-curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/stats
+curl http://localhost:8080/stats
 ```
 
 **Response:**
@@ -74,9 +67,8 @@ curl https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/stats
 Save a memory. Orunla extracts facts from the text and adds them to your knowledge graph.
 
 ```bash
-curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/ingest \
+curl -X POST http://localhost:8080/ingest \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-key" \
   -d '{"text": "Sarah manages the marketing budget and reports to David."}'
 ```
 
@@ -100,9 +92,8 @@ curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/ingest 
 Search for memories matching a query. Returns results ranked by relevance and recency.
 
 ```bash
-curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/recall \
+curl -X POST http://localhost:8080/recall \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-key" \
   -d '{"query": "Who is Sarah?", "limit": 5}'
 ```
 
@@ -136,25 +127,42 @@ Only `query` is required. `limit` defaults to 10. `min_strength` defaults to 0.0
 
 ---
 
+### `POST /ingest-file`
+
+Upload a file for ingestion. Supports `.txt`, `.md`, `.csv`, `.json`.
+
+```bash
+curl -X POST http://localhost:8080/ingest-file \
+  -F "file=@document.txt"
+```
+
+**Response:**
+```json
+{
+  "status": "ok",
+  "file": "document.txt",
+  "chunks_processed": 5,
+  "total_triplets_added": 12
+}
+```
+
+Max file size: 50 MB.
+
+---
+
 ### `POST /memories/purge`
 
 Delete all memories matching a keyword or topic.
 
 ```bash
-curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/memories/purge \
+curl -X POST http://localhost:8080/memories/purge \
   -H "Content-Type: application/json" \
-  -H "X-API-Key: your-key" \
   -d '{"query": "old project"}'
-```
-
-**Body:**
-```json
-{ "query": "topic to forget" }
 ```
 
 **Response:**
 ```json
-{ "status": "ok", "deleted_count": 5 }
+{ "status": "ok", "purged_count": 5, "orphaned_cleaned": 2 }
 ```
 
 ---
@@ -164,42 +172,8 @@ curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/memorie
 Delete a specific memory by its ID (returned from `/recall`).
 
 ```bash
-curl -X DELETE https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/memories/abc-123 \
-  -H "X-API-Key: your-key"
+curl -X DELETE http://localhost:8080/memories/abc-123
 ```
-
-**Response:** `200 OK`
-
----
-
-### `POST /gc`
-
-Run garbage collection to clean up old, decayed memories.
-
-```bash
-curl -X POST https://orunla-production.up.railway.app/api/YOUR-DEVICE-ID/gc \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: your-key" \
-  -d '{"threshold": 0.05}'
-```
-
-**Body:**
-```json
-{ "threshold": 0.05 }
-```
-
-Memories with strength below the threshold are deleted. Default: 0.05.
-
-**Response:**
-```json
-{ "status": "ok", "deleted_memories": 2, "cleaned_nodes": 1 }
-```
-
----
-
-## File Upload
-
-File upload (`/ingest-file`) is only available through the desktop app interface, not through the relay. Use the desktop app UI to upload `.txt`, `.md`, `.csv`, or `.json` files directly.
 
 ---
 
@@ -207,19 +181,8 @@ File upload (`/ingest-file`) is only available through the desktop app interface
 
 | Limit | Value |
 |-------|-------|
-| Rate limit (relay) | 120 requests/min per IP |
+| Rate limit | 60 requests/min per IP |
 | Text input | 1 MB max |
-| File upload | 50 MB max (desktop app only) |
+| File upload | 50 MB max |
 | Query length | 10 KB max |
 | Results per query | 10,000 max |
-| Relay timeout | 30 seconds |
-
----
-
-## Background Sync (Pro)
-
-With a Pro license (or during the 14-day trial), your memories sync automatically across devices every 30 seconds. No configuration needed — just keep the desktop app running.
-
----
-
-*For local API access, CLI commands, manual server setup, and advanced configuration, see `DEVELOPER.md`.*

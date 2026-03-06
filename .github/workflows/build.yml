@@ -1,16 +1,32 @@
-name: Build Release
+name: CI
 
 on:
   push:
-    tags:
-      - "v*"
-  workflow_dispatch:
+    branches: [master]
+    tags: ["v*"]
+  pull_request:
+    branches: [master]
 
 permissions:
   contents: write
 
 jobs:
-  build:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: swatinem/rust-cache@v2
+      - name: Check formatting
+        run: cargo fmt -- --check
+      - name: Clippy
+        run: cargo clippy -- -D warnings
+      - name: Run tests
+        run: cargo test
+
+  release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: test
     strategy:
       fail-fast: false
       matrix:
@@ -123,7 +139,7 @@ jobs:
 
             Each zip contains the desktop app, CLI, MCP server, ONNX runtime, and documentation.
 
-            > macOS unsigned build: Right-click the app → Open to bypass Gatekeeper on first launch.
+            > macOS unsigned build: Right-click the app > Open to bypass Gatekeeper on first launch.
           releaseDraft: true
           prerelease: false
           args: --target ${{ matrix.rust_target }}
@@ -141,7 +157,7 @@ jobs:
         if: runner.os == 'macOS'
         run: |
           DIST="${{ matrix.dist_name }}"
-          mkdir -p "${DIST}/documentation"
+          mkdir -p "${DIST}/docs"
 
           # Binaries
           cp "target/${{ matrix.rust_target }}/release/orunla_cli" "${DIST}/"
@@ -150,23 +166,17 @@ jobs:
           # ONNX Runtime
           cp "src-tauri/resources/libonnxruntime.dylib" "${DIST}/"
 
-          # Browser UI
-          cp launch_orunla.sh "${DIST}/"
-          chmod +x "${DIST}/launch_orunla.sh"
+          # UI
           mkdir -p "${DIST}/ui"
           cp ui/index.html "${DIST}/ui/"
           cp ui/main.js "${DIST}/ui/"
 
           # Documentation
-          cp README-MAC.md "${DIST}/README.md"
-          cp docs/CLI.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/MCP.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/API_REFERENCE.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/AI_SETUP.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/OVERVIEW.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/LICENSE "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/DEVELOPER.md "${DIST}/documentation/" 2>/dev/null || true
-          cp docs/THIRD_PARTY_NOTICES.md "${DIST}/documentation/" 2>/dev/null || true
+          cp README.md "${DIST}/"
+          cp LICENSE "${DIST}/"
+          for doc in docs/CLI.md docs/MCP.md docs/API_REFERENCE.md docs/AI_SETUP.md docs/OVERVIEW.md docs/DEVELOPER.md docs/THIRD_PARTY_NOTICES.md; do
+            [ -f "$doc" ] && cp "$doc" "${DIST}/docs/"
+          done
 
           # Zip
           zip -r "${DIST}.zip" "${DIST}/"
@@ -178,7 +188,7 @@ jobs:
         shell: pwsh
         run: |
           $DIST = "${{ matrix.dist_name }}"
-          New-Item -ItemType Directory -Force -Path "$DIST\documentation" | Out-Null
+          New-Item -ItemType Directory -Force -Path "$DIST\docs" | Out-Null
 
           # Binaries
           Copy-Item "target\${{ matrix.rust_target }}\release\orunla_cli.exe" "$DIST\"
@@ -196,10 +206,11 @@ jobs:
           Copy-Item "src-tauri\resources\onnxruntime.dll" "$DIST\"
 
           # Documentation
-          Copy-Item "README-WINDOWS.md" "$DIST\README.md"
-          $docs = @("docs\CLI.md", "docs\MCP.md", "docs\API_REFERENCE.md", "docs\AI_SETUP.md", "docs\OVERVIEW.md", "docs\DEVELOPER.md", "docs\LICENSE", "docs\THIRD_PARTY_NOTICES.md")
+          Copy-Item "README.md" "$DIST\"
+          Copy-Item "LICENSE" "$DIST\"
+          $docs = @("docs\CLI.md", "docs\MCP.md", "docs\API_REFERENCE.md", "docs\AI_SETUP.md", "docs\OVERVIEW.md", "docs\DEVELOPER.md", "docs\THIRD_PARTY_NOTICES.md")
           foreach ($doc in $docs) {
-            if (Test-Path $doc) { Copy-Item $doc "$DIST\documentation\" }
+            if (Test-Path $doc) { Copy-Item $doc "$DIST\docs\" }
           }
 
           # Zip
@@ -214,8 +225,4 @@ jobs:
         shell: bash
         run: |
           TAG="${{ github.ref_name }}"
-          # workflow_dispatch may not have a tag, use a default
-          if [ -z "$TAG" ] || [ "$TAG" = "" ]; then
-            TAG="v0.4.1"
-          fi
           gh release upload "$TAG" "${{ matrix.dist_name }}.zip" --clobber

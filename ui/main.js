@@ -18,10 +18,6 @@ const statusMsg = document.getElementById('status-msg');
 // Server status elements
 const serverDot = document.getElementById('server-dot');
 const serverStatusLabel = document.getElementById('server-status-label');
-const relayDot = document.getElementById('relay-dot');
-const relayStatusLabel = document.getElementById('relay-status-label');
-const relayUrlEl = document.getElementById('relay-url');
-const relayApiUrlEl = document.getElementById('relay-api-url');
 
 // API key elements
 const apiKeyInput = document.getElementById('api-key-input');
@@ -67,36 +63,14 @@ async function checkServerStatus() {
     }
 }
 
-async function loadServerInfo() {
-    try {
-        const info = await invoke('get_server_info');
-
-        if (info.relay_url) {
-            relayUrlEl.textContent = info.relay_url;
-            relayApiUrlEl.textContent = info.relay_api_url || 'N/A';
-            setStatus(relayDot, relayStatusLabel, 'online', 'Available');
-        } else {
-            relayUrlEl.textContent = 'No device ID — run any command first';
-            relayApiUrlEl.textContent = 'No device ID';
-            setStatus(relayDot, relayStatusLabel, 'offline', 'No device ID');
-        }
-    } catch (e) {
-        console.error("Failed to load server info:", e);
-        relayUrlEl.textContent = 'Failed to load';
-        relayApiUrlEl.textContent = 'Failed to load';
-        setStatus(relayDot, relayStatusLabel, 'offline', 'Error');
-    }
-}
-
 function copyUrl(elementId) {
     const el = document.getElementById(elementId);
     const text = el.textContent;
-    if (!text || text === 'Loading...' || text.startsWith('No ') || text.startsWith('Failed')) return;
+    if (!text || text === 'Loading...') return;
 
     navigator.clipboard.writeText(text).then(() => {
         showStatus('Copied to clipboard');
     }).catch(() => {
-        // Fallback for older browsers
         const textarea = document.createElement('textarea');
         textarea.value = text;
         document.body.appendChild(textarea);
@@ -266,8 +240,6 @@ saveApiKeyBtn.addEventListener('click', async () => {
 updateStats();
 setInterval(updateStats, 5000);
 
-// Load server info once, then poll server health every 5s
-loadServerInfo();
 loadApiKey();
 // Give the server a moment to start before first health check
 setTimeout(checkServerStatus, 2000);

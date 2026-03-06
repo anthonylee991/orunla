@@ -1,114 +1,114 @@
-# Orunla: The Intelligent, Local-First Memory System
+# Orunla
 
-**Orunla** is a "Secondary Brain" for your AI agents and your personal data. Unlike standard AI memory that fades or hallucinations, Orunla stores facts as a **Knowledge Graph**—structured connections between concepts—and keeps them 100% local on your machine.
+A local-first AI memory system that stores facts as a knowledge graph on your machine. Orunla extracts entities and relationships from text using on-device AI (GliNER/ONNX), applies Ebbinghaus forgetting curves to keep memories relevant, and provides hybrid retrieval (FTS5 + graph search) ranked by recency and confidence.
 
----
+[![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
-## 🚀 Getting Started (Zero Coding Required)
+## Features
 
-### 1. Download & Install
-1.  Go to the [Releases](https://github.com/yourusername/orunla/releases) page.
-2.  Download the **`Tauri Apporunla_0.1.0_x64-setup.exe`** installer.
-3.  Run the installer and click "Install".
-4.  Launch **Orunla Memory** from your Start Menu.
+- **Knowledge graph storage** -- entities, relationships, and facts in SQLite with FTS5 indexing
+- **Local AI extraction** -- GliNER runs on-device via ONNX Runtime (no API keys, no cloud, works offline)
+- **Memory decay** -- Ebbinghaus forgetting curve prunes stale facts automatically
+- **Hybrid search** -- full-text keyword search + graph traversal, ranked by strength
+- **Multiple interfaces** -- desktop app (Tauri), CLI, REST API, MCP server
+- **MCP integration** -- works with Claude Code, Claude Desktop, Cursor, Cline, Windsurf, and any MCP client
+- **100% private** -- all data stays in `~/.orunla/memory.db`
 
-### 2. Add Your First Memory
-1.  Open the Orunla Desktop App.
-2.  In the "Ingest" box, type: *"The office printer code is 9988."*
-3.  Click **Add**. Orunla's AI will automatically extract that Fact.
+## Quick Start
 
-### 3. Recall Information
-1.  Go to the "Recall" tab.
-2.  Type *"printer"* and press enter.
-3.  Orunla will show you the exact fact linking the printer to the code.
+### Download
 
----
+Grab the latest release for your platform from the [Releases](https://github.com/anthropr/orunla/releases) page. Each zip contains the desktop app, CLI, MCP server, and ONNX runtime.
 
-## 🌟 Key Features
-
-| Feature | Description | Why it matters |
-|---------|-------------|----------------|
-| ** GliNER extraction** | Smart AI that understands "who did what". | Extremely accurate fact gathering. |
-| **Forgetting Curve** | Memories "fade" over time if not used. | Keeps your brain focused on what's relevant now. |
-| **Garbage Collection** | Automatically deletes old, useless facts. | Saves disk space and keeps the system fast. |
-| **Node Merging** | Combines "Rust", "rust", and "RUST" into one. | Keeps your knowledge graph clean and organized. |
-
----
-
-## 📈 Use Cases
-
-### 🛠️ Personal Assistant
-- **Input**: "My niece, Sarah, is allergic to peanuts."
-- **Months Later**: "What should I know about Sarah's birthday party?"
-- **Orunla Recall**: "Sarah is allergic to peanuts."
-
-### 🏢 Customer Support
-- **Input**: "The return policy for electronics is 14 days."
-- **Recall**: (Searched by a support agent) "How long for electronics returns?"
-- **Result**: "Electronics -> return policy -> 14 days."
-
----
-
-## 🔌 No-Code Integration (Zapier / Make.com)
-
-You can connect Orunla to tools like **Gmail**, **Slack**, or **Typeform** without writing a single line of code by using the **Webhooks** or **HTTP Request** modules.
-
-### Example: Auto-save important emails
-1.  **Trigger**: New starred email in Gmail.
-2.  **Action**: HTTP Request (POST) to `http://your-local-ip:3000/ingest`.
-3.  **Body**: `{"text": "{{email_body}}"}`
-4.  **Result**: Every starred email is automatically turned into Facts in your Orunla brain.
-
-### 🔒 Security for External Access
-
-**IMPORTANT:** If you expose your server to the internet (via ngrok, tunneling services, or cloud deployment), ALWAYS use API key authentication:
+### CLI
 
 ```bash
-# Generate a strong random API key (example)
-# On Windows PowerShell:
-# -Join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | % {[char]$_})
+# Add a memory
+orunla_cli ingest "Sarah works at Microsoft and lives in Seattle."
 
-# Start server with API key protection
-orunla_cli.exe serve --port 3000 --api-key "your-secret-key-here"
+# Search memories
+orunla_cli recall "Who is Sarah?"
+
+# Start the REST API server
+orunla_cli serve --port 8080
 ```
 
-Then add the API key to your webhook requests:
-- **Header:** `X-API-Key: your-secret-key-here`
-- **Or:** `Authorization: Bearer your-secret-key-here`
+### MCP Server (for AI agents)
 
-The server includes automatic rate limiting (60 requests/minute per IP) to prevent abuse.
+Add to your MCP config (Claude Code, Cursor, etc.):
 
----
+```json
+{
+  "mcpServers": {
+    "orunla": {
+      "command": "/path/to/orunla_mcp"
+    }
+  }
+}
+```
 
-## 🛠️ Advanced: API, CLI & MCP
-For developers and power users looking to build on top of or automate Orunla:
+See [MCP.md](docs/MCP.md) for full setup instructions per IDE.
 
-- 📑 **[API Reference](API_REFERENCE.md)**: Full list of REST endpoints for webhooks/no-code.
-- 💻 **[CLI Guide](docs/CLI.md)**: Maintenance commands (GC, Dedup, etc).
-- 🤖 **[MCP Guide](docs/MCP.md)**: Connecting Orunla to AI Agents (Claude Desktop).
+### REST API
 
----
+```bash
+# Save a memory
+curl -X POST http://localhost:8080/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"text": "The deploy key rotates every 90 days."}'
 
-## 🛡️ Privacy & Security
-Orunla is **local-first**. Your memories are stored in a SQLite database on your own machine. We do not use cloud storage, and your data is never used to train global AI models.
+# Search
+curl -X POST http://localhost:8080/recall \
+  -H "Content-Type: application/json" \
+  -d '{"query": "deploy key"}'
+```
 
----
+See [API_REFERENCE.md](docs/API_REFERENCE.md) for all endpoints.
 
-## 💾 Database Management
+## How It Works
 
-### 📍 Where is my data?
-All your memories are stored in a single file on your computer:
-- **Windows**: `%USERPROFILE%\.orunla\memory.db`
-- **Linux/Mac**: `~/.orunla/memory.db`
+```
+Text Input --> GliNER Entity Extraction --> Knowledge Graph (SQLite)
+                                                  |
+                                           Hybrid Retrieval
+                                        (FTS5 + Graph Search)
+                                                  |
+                                         Ebbinghaus Decay
+                                        (rank by strength)
+```
 
-### 🔍 How to view your data
-If you want to manually browse your knowledge graph:
-1.  Download a free tool like **[DB Browser for SQLite](https://sqlitebrowser.org/)**.
-2.  Open the `memory.db` file listed above.
-3.  Browse the `nodes` table (concepts) and `edges` table (connections).
+1. **Ingestion** -- GliNER extracts entities (people, orgs, locations, concepts) and relationships from text, producing subject-predicate-object triplets
+2. **Storage** -- triplets are stored as nodes and edges in SQLite with FTS5 indexing on source text
+3. **Retrieval** -- hybrid search combines keyword matching (FTS5) with graph traversal, then ranks by memory strength
+4. **Decay** -- strength = `e^(-days/30) * (1 + ln(1 + access_count)) * confidence` -- unused memories fade, frequently accessed ones persist
 
-### 🔄 How to Reset Orunla
-If you want to wipe your brain and start fresh:
-1.  Close the Orunla Desktop App and CLI.
-2.  **Delete** the `memory.db` file.
-3.  The next time you start Orunla, it will create a brand new, empty database.
+## Building from Source
+
+```bash
+# Prerequisites: Rust toolchain, Node.js, ONNX Runtime
+
+# Build CLI and MCP server
+cargo build --release --bin orunla_cli
+cargo build --release --bin orunla_mcp
+
+# Build desktop app (Tauri)
+npm ci
+npm run tauri build
+```
+
+## Documentation
+
+- [Overview](docs/OVERVIEW.md) -- architecture and design
+- [AI Setup](docs/AI_SETUP.md) -- connecting to Claude, ChatGPT, n8n, etc.
+- [MCP Guide](docs/MCP.md) -- MCP server configuration per IDE
+- [API Reference](docs/API_REFERENCE.md) -- REST endpoints
+- [CLI Guide](docs/CLI.md) -- command-line usage
+- [Developer Guide](docs/DEVELOPER.md) -- building, tunnels, advanced config
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE) for details.
