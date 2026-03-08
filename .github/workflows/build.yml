@@ -140,7 +140,7 @@ jobs:
             Each zip contains the desktop app, CLI, MCP server, ONNX runtime, and documentation.
 
             > macOS unsigned build: Right-click the app > Open to bypass Gatekeeper on first launch.
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           args: --target ${{ matrix.rust_target }}
 
