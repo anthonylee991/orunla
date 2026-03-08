@@ -18,7 +18,7 @@ A local-first AI memory system that stores facts as a knowledge graph on your ma
 
 ### Download
 
-Grab the latest release for your platform from the [Releases](https://github.com/anthropr/orunla/releases) page. Each zip contains the desktop app, CLI, MCP server, and ONNX runtime.
+Grab the latest release for your platform from the [Releases](https://github.com/anthonylee991/orunla/releases) page. Each zip contains the desktop app, CLI, MCP server, and ONNX runtime.
 
 ### CLI
 
@@ -84,16 +84,55 @@ Text Input --> GliNER Entity Extraction --> Knowledge Graph (SQLite)
 
 ## Building from Source
 
-```bash
-# Prerequisites: Rust toolchain, Node.js, ONNX Runtime
+### Prerequisites
 
-# Build CLI and MCP server
+- **Rust** toolchain (stable) -- [rustup.rs](https://rustup.rs)
+- **ONNX Runtime 1.20.0** -- required for GliNER entity extraction
+- **Node.js 22+** -- only needed if building the desktop app
+
+### 1. Download ONNX Runtime
+
+Download from [github.com/microsoft/onnxruntime/releases/v1.20.0](https://github.com/microsoft/onnxruntime/releases/tag/v1.20.0):
+
+| Platform | Download | Library file |
+|----------|----------|-------------|
+| **Windows x64** | `onnxruntime-win-x64-1.20.0.zip` | `lib/onnxruntime.dll` |
+| **macOS Apple Silicon** | `onnxruntime-osx-arm64-1.20.0.tgz` | `lib/libonnxruntime.1.20.0.dylib` |
+| **macOS Intel** | `onnxruntime-osx-x86_64-1.20.0.tgz` | `lib/libonnxruntime.1.20.0.dylib` |
+| **Linux x64** | `onnxruntime-linux-x64-1.20.0.tgz` | `lib/libonnxruntime.so.1.20.0` |
+
+Extract the archive and place the library file where the binary can find it:
+- **Windows:** put `onnxruntime.dll` in the same directory as the built `.exe`
+- **macOS:** set `ORT_DYLIB_PATH=/path/to/libonnxruntime.dylib`
+- **Linux:** set `LD_LIBRARY_PATH` to include the directory, or install to `/usr/local/lib`
+
+### 2. Build
+
+```bash
+# CLI and MCP server
 cargo build --release --bin orunla_cli
 cargo build --release --bin orunla_mcp
 
-# Build desktop app (Tauri)
+# Binaries are in target/release/
+```
+
+### 3. (Optional) Build the desktop app
+
+```bash
 npm ci
 npm run tauri build
+```
+
+### 4. Run
+
+The GliNER model (~80MB) downloads automatically from HuggingFace on first run.
+
+```bash
+# Copy ONNX runtime next to the binary (Windows example)
+cp onnxruntime.dll target/release/
+
+# Test it
+./target/release/orunla_cli ingest "Hello world"
 ```
 
 ## Documentation
